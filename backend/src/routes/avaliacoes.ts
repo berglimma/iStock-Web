@@ -1,5 +1,5 @@
 import { Router, type Request } from 'express';
-import { authMiddleware } from '../middleware/auth.js';
+import { authMiddleware, requirePapel } from '../middleware/auth.js';
 import { pesquisarDefeitos } from '../services/defeitosService.js';
 import { estimarPreco } from '../services/precificador.js';
 import { registrarTransacao, TipoTransacao, tituloAvaliacao } from '../services/transacaoLogService.js';
@@ -257,16 +257,17 @@ router.put('/:id', async (req, res) => {
   res.json({ ok: true });
 });
 
-router.delete('/:id', async (req, res) => {
-  const av = await store.getAvaliacao(req.params.id);
-  await store.deleteAvaliacao(req.params.id);
+router.delete('/:id', requirePapel('Administrador'), async (req, res) => {
+  const id = String(req.params.id);
+  const av = await store.getAvaliacao(id);
+  await store.deleteAvaliacao(id);
   if (av) {
     await registrarTransacao({
       tipo: TipoTransacao.avaliacaoExcluida,
       titulo: `Avaliação excluída: ${tituloAvaliacao(av.nome, av.modelo)}`,
       detalhes: 'Exclusão autorizada por administrador.',
       valor: av.valorVendaReal ?? av.valorEstimado,
-      referenciaId: req.params.id,
+      referenciaId: id,
       usuario: usuario(req),
     });
   }

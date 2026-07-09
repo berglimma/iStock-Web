@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
+import { Trash2 } from 'lucide-react';
 import { api, brl, dataCompleta, dataCurta } from '../api/client';
+import { useAuth } from '../context/AuthContext';
 import type { Avaliacao, ProblemaModelo } from '../types';
 import { Badge, CartaoVidro } from './UI';
 
@@ -13,6 +15,7 @@ interface Props {
 }
 
 export function DetalheAvaliacaoModal({ avaliacao, onClose, onAtualizado }: Props) {
+  const { usuario } = useAuth();
   const [item, setItem] = useState(avaliacao);
   const [valorAjustado, setValorAjustado] = useState(String(avaliacao.valorEstimado ?? ''));
   const [valorReal, setValorReal] = useState(String(avaliacao.valorVendaReal ?? ''));
@@ -56,6 +59,17 @@ export function DetalheAvaliacaoModal({ avaliacao, onClose, onAtualizado }: Prop
   };
 
   const titulo = item.modelo || item.nome;
+  const podeExcluir = usuario?.papel === 'Administrador';
+
+  const excluirAvaliacao = () => {
+    if (!item.id) return;
+    if (!window.confirm(`Excluir "${titulo}"?\n\nEsta ação não pode ser desfeita.`)) return;
+    run(async () => {
+      await api.avaliacoes.excluir(item.id!);
+      onAtualizado();
+      onClose();
+    });
+  };
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -292,6 +306,20 @@ export function DetalheAvaliacaoModal({ avaliacao, onClose, onAtualizado }: Prop
             <button className="btn-primario" style={{ width: 'auto', padding: '8px 16px' }} disabled={processando}
               onClick={() => run(async () => { await api.avaliacoes.paraEstoque(item.id!); })}>
               Enviar ao estoque
+            </button>
+          )}
+          {podeExcluir && (
+            <button
+              type="button"
+              className="btn-secundario"
+              style={{ width: 'auto', padding: '8px 16px', color: '#ff3b30', borderColor: 'rgba(255,59,48,0.4)' }}
+              disabled={processando}
+              onClick={excluirAvaliacao}
+            >
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <Trash2 size={16} />
+                Excluir avaliação
+              </span>
             </button>
           )}
           <button className="btn-secundario" onClick={onClose}>Fechar</button>
