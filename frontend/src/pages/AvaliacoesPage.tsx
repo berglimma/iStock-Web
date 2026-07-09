@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, AlertCircle } from 'lucide-react';
 import { api, brl, dataCurta } from '../api/client';
 import type { Avaliacao, StatusAvaliacao } from '../types';
 import { STATUS_AVALIACAO } from '../types';
@@ -21,8 +21,12 @@ export default function AvaliacoesPage() {
   const [filtro, setFiltro] = useState<StatusAvaliacao | null>(null);
   const [sel, setSel] = useState<Avaliacao | null>(null);
   const [mostrarNova, setMostrarNova] = useState(false);
+  const [erroCarregamento, setErroCarregamento] = useState('');
 
-  const reload = useCallback(() => api.avaliacoes.listar().then(setItems), []);
+  const reload = useCallback(() => api.avaliacoes.listar()
+    .then((data) => { setItems(data); setErroCarregamento(''); })
+    .catch((err) => setErroCarregamento(err instanceof Error ? err.message : 'Falha ao carregar avaliações')),
+  []);
   useSyncRefresh(reload);
 
   const lista = useMemo(() => {
@@ -46,6 +50,12 @@ export default function AvaliacoesPage() {
           Nova
         </button>
       </div>
+
+      {erroCarregamento && (
+        <div className="erro-msg" style={{ marginBottom: 16 }}>
+          <AlertCircle size={16} /> {erroCarregamento}
+        </div>
+      )}
 
       <div className="filtros-row" style={{ marginBottom: 20 }}>
         <button className={`chip ${filtro === null ? 'active' : ''}`} onClick={() => setFiltro(null)}>Todas</button>

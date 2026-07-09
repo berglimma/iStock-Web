@@ -46,7 +46,8 @@ GOOGLE_APPLICATION_CREDENTIALS=/app/secrets/firebase-service-account.json
 
 1. Firebase Console → Adicionar app → **Web**
 2. Copie a `apiKey` para `VITE_FIREBASE_API_KEY` no frontend
-3. Habilite **E-mail/Senha** em Authentication
+3. Habilite **E-mail/Senha** e **Google** em Authentication → Sign-in method
+4. Em Authentication → Settings → Authorized domains, inclua `localhost` e seu domínio de produção
 
 ## Configuração do frontend
 

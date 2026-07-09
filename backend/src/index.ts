@@ -102,13 +102,23 @@ app.get('/api/sync/status', async (_req, res) => {
   try {
     const { firebaseAuth, firestore } = await import('./firebase/admin.js');
     await firebaseAuth().listUsers(1);
-    await firestore().collection('lancamentos').limit(1).get();
+    const db = firestore();
+    const [lancSnap, avSnap, cliSnap] = await Promise.all([
+      db.collection('lancamentos').count().get(),
+      db.collection('avaliacoes').count().get(),
+      db.collection('clientes').count().get(),
+    ]);
     res.json({
       ativo: true,
       modo: 'firestore',
       projectId: process.env.FIREBASE_PROJECT_ID || 'istock-4771d',
       databaseId: process.env.FIRESTORE_DATABASE_ID || 'istock',
       credenciais: true,
+      contagens: {
+        lancamentos: lancSnap.data().count,
+        avaliacoes: avSnap.data().count,
+        clientes: cliSnap.data().count,
+      },
       mensagem: 'Sincronização ativa com o app iOS (modo Nuvem)',
     });
   } catch (err) {

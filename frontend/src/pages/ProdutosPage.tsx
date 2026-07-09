@@ -3,6 +3,7 @@ import { api, brl, dataCurta } from '../api/client';
 import type { Lancamento } from '../types';
 import { TituloTela, Badge, EstadoVazio } from '../components/UI';
 import { useSyncRefresh } from '../hooks/useSyncRefresh';
+import { AlertCircle } from 'lucide-react';
 
 type Filtro = 'todos' | 'Disponível' | 'Reservado' | 'Vendido' | 'parados';
 
@@ -11,8 +12,12 @@ export default function ProdutosPage() {
   const [busca, setBusca] = useState('');
   const [filtro, setFiltro] = useState<Filtro>('todos');
   const [selecionado, setSelecionado] = useState<Lancamento | null>(null);
+  const [erroCarregamento, setErroCarregamento] = useState('');
 
-  const reload = useCallback(() => api.lancamentos.listar().then(setProdutos), []);
+  const reload = useCallback(() => api.lancamentos.listar()
+    .then((data) => { setProdutos(data); setErroCarregamento(''); })
+    .catch((err) => setErroCarregamento(err instanceof Error ? err.message : 'Falha ao carregar produtos')),
+  []);
   useSyncRefresh(reload);
 
   const filtrados = produtos
@@ -36,6 +41,12 @@ export default function ProdutosPage() {
         titulo="Produtos"
         subtitulo={`${produtos.filter((p) => p.status !== 'Vendido').length} em estoque · ${produtos.filter((p) => p.status === 'Vendido').length} vendidos`}
       />
+
+      {erroCarregamento && (
+        <div className="erro-msg" style={{ marginBottom: 16 }}>
+          <AlertCircle size={16} /> {erroCarregamento}
+        </div>
+      )}
 
       <div className="campo-app" style={{ marginBottom: 16 }}>
         <input placeholder="Buscar produto..." value={busca} onChange={(e) => setBusca(e.target.value)} />

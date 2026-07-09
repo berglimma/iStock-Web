@@ -59,7 +59,10 @@ echo ""
 # ── Etapa 2: Service Account ───────────────────────────────────────────────
 echo "→ Etapa 2/5 — Credenciais Firebase Admin"
 if [[ -f "$SA_FILE" ]]; then
-  cp "$SA_FILE" ./firebase-service-account.json
+  SA_DEST="./firebase-service-account.json"
+  if [[ "$(cd "$(dirname "$SA_FILE")" && pwd)/$(basename "$SA_FILE")" != "$(pwd)/firebase-service-account.json" ]]; then
+    cp "$SA_FILE" "$SA_DEST"
+  fi
   echo "   ✅ Service account: $SA_FILE"
   HAS_SA=true
 else

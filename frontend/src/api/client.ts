@@ -1,19 +1,46 @@
+import { getFirebaseAuth, isFirebaseConfigured, refreshIdToken } from '../firebase/auth';
+
 const API = '/api';
 
 function getToken() {
   return localStorage.getItem('istock_token');
 }
 
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+async function resolveAuthToken(): Promise<string | null> {
+  if (isFirebaseConfigured()) {
+    const user = getFirebaseAuth().currentUser;
+    if (user) {
+      try {
+        const token = await user.getIdToken();
+        localStorage.setItem('istock_token', token);
+        return token;
+      } catch {
+        // usa token em cache abaixo
+      }
+    }
+  }
+  return getToken();
+}
+
+async function request<T>(path: string, options: RequestInit = {}, retried = false): Promise<T> {
   const headers: Record<string, string> = {
     ...(options.body && !(options.body instanceof FormData) ? { 'Content-Type': 'application/json' } : {}),
     ...(options.headers as Record<string, string> || {}),
   };
-  const token = getToken();
+  const token = await resolveAuthToken();
   if (token) headers.Authorization = `Bearer ${token}`;
 
   const res = await fetch(`${API}${path}`, { ...options, headers });
   const data = await res.json().catch(() => ({}));
+
+  if (res.status === 401 && !retried && isFirebaseConfigured()) {
+    const fresh = await refreshIdToken();
+    if (fresh) {
+      localStorage.setItem('istock_token', fresh);
+      return request<T>(path, options, true);
+    }
+  }
+
   if (!res.ok) throw new Error(data.erro || 'Erro na requisição');
   return data as T;
 }

@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { api } from '../api/client';
-import { isFirebaseConfigured, firebaseLogin, firebaseCadastro, firebaseLogout, onFirebaseAuthChange } from '../firebase/auth';
+import { isFirebaseConfigured, firebaseLogin, firebaseLoginGoogle, firebaseCadastro, firebaseLogout, firebaseRedefinirSenha, onFirebaseAuthChange, onFirebaseTokenRefresh, erroFirebase } from '../firebase/auth';
 import type { Usuario } from '../types';
 
 interface AuthContextType {
@@ -9,6 +9,8 @@ interface AuthContextType {
   erro: string | null;
   firebaseAtivo: boolean;
   login: (email: string, senha: string) => Promise<void>;
+  loginGoogle: () => Promise<void>;
+  redefinirSenha: (email: string) => Promise<void>;
   cadastro: (nome: string, email: string, senha: string, papel: string) => Promise<void>;
   sair: () => void;
   limparErro: () => void;
@@ -23,7 +25,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [firebaseAtivo, setFirebaseAtivo] = useState(false);
 
   useEffect(() => {
-    let unsub: (() => void) | undefined;
+    let unsubAuth: (() => void) | undefined;
+    let unsubToken: (() => void) | undefined;
 
     async function init() {
       try {
@@ -32,7 +35,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setFirebaseAtivo(usarFirebase);
 
         if (usarFirebase) {
-          unsub = onFirebaseAuthChange(async (user) => {
+          unsubToken = onFirebaseTokenRefresh(() => {});
+          unsubAuth = onFirebaseAuthChange(async (user) => {
             if (!user) {
               localStorage.removeItem('istock_token');
               setUsuario(null);
@@ -69,21 +73,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     init();
-    return () => unsub?.();
+    return () => {
+      unsubAuth?.();
+      unsubToken?.();
+    };
   }, []);
 
   const login = async (email: string, senha: string) => {
     setErro(null);
     if (firebaseAtivo) {
-      const { idToken } = await firebaseLogin(email, senha);
-      localStorage.setItem('istock_token', idToken);
-      const r = await api.firebaseSession(idToken);
-      setUsuario(r.usuario);
+      try {
+        const { idToken } = await firebaseLogin(email, senha);
+        localStorage.setItem('istock_token', idToken);
+        const r = await api.firebaseSession(idToken);
+        setUsuario(r.usuario);
+      } catch (err) {
+        throw new Error(erroFirebase(err));
+      }
       return;
     }
     const r = await api.login(email, senha);
     localStorage.setItem('istock_token', r.token);
     setUsuario(r.usuario);
+  };
+
+  const loginGoogle = async () => {
+    setErro(null);
+    if (!firebaseAtivo) {
+      throw new Error('Login com Google requer sincronização Firebase ativa.');
+    }
+    try {
+      const { idToken } = await firebaseLoginGoogle();
+      localStorage.setItem('istock_token', idToken);
+      const r = await api.firebaseSession(idToken);
+      setUsuario(r.usuario);
+    } catch (err) {
+      throw new Error(erroFirebase(err));
+    }
+  };
+
+  const redefinirSenha = async (email: string) => {
+    setErro(null);
+    if (!firebaseAtivo) {
+      throw new Error('Redefinição de senha disponível apenas no modo nuvem (Firebase).');
+    }
+    try {
+      await firebaseRedefinirSenha(email);
+    } catch (err) {
+      throw new Error(erroFirebase(err));
+    }
   };
 
   const cadastro = async (nome: string, email: string, senha: string, papel: string) => {
@@ -107,7 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ usuario, carregando, erro, firebaseAtivo, login, cadastro, sair, limparErro: () => setErro(null) }}>
+    <AuthContext.Provider value={{ usuario, carregando, erro, firebaseAtivo, login, loginGoogle, redefinirSenha, cadastro, sair, limparErro: () => setErro(null) }}>
       {children}
     </AuthContext.Provider>
   );

@@ -33,6 +33,9 @@ router.post('/firebase', async (req, res) => {
     if (!perfil) {
       const fbUser = await firebaseAuth().getUser(decoded.uid);
       const email = (fbUser.email || decoded.email || '').toLowerCase().trim();
+      if (!email) {
+        return res.status(400).json({ erro: 'Conta Google sem e-mail. Use outro método de login.' });
+      }
       const nome = fbUser.displayName?.trim() || email.split('@')[0] || 'Usuário';
       await store.createUsuario({
         id: decoded.uid,

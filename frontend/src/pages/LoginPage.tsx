@@ -5,9 +5,11 @@ import { api } from '../api/client';
 import { PAPEIS } from '../types';
 import { FundoTecnologico, CartaoVidro } from '../components/UI';
 import { MacAppPromo } from '../components/MacAppPromo';
+import { GoogleLoginButton } from '../components/GoogleLoginButton';
+import { RedefinirSenhaModal } from '../components/RedefinirSenhaModal';
 
 export default function LoginPage() {
-  const { login, cadastro } = useAuth();
+  const { login, loginGoogle, redefinirSenha, cadastro, firebaseAtivo } = useAuth();
   const [modoCadastro, setModoCadastro] = useState(false);
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
@@ -17,6 +19,7 @@ export default function LoginPage() {
   const [adminOk, setAdminOk] = useState(true);
   const [erro, setErro] = useState('');
   const [carregando, setCarregando] = useState(false);
+  const [mostrarRedefinirSenha, setMostrarRedefinirSenha] = useState(false);
 
   useEffect(() => {
     if (modoCadastro) api.adminDisponivel().then((r) => setAdminOk(r.disponivel)).catch(() => {});
@@ -40,6 +43,18 @@ export default function LoginPage() {
     }
   };
 
+  const handleGoogle = async () => {
+    setErro('');
+    setCarregando(true);
+    try {
+      await loginGoogle();
+    } catch (err) {
+      setErro(err instanceof Error ? err.message : 'Erro ao entrar com Google');
+    } finally {
+      setCarregando(false);
+    }
+  };
+
   return (
     <>
       <FundoTecnologico />
@@ -56,6 +71,15 @@ export default function LoginPage() {
               {modoCadastro ? 'Cadastre-se para acessar o sistema na nuvem' : 'Acesse sua conta na nuvem'}
             </p>
 
+            {firebaseAtivo && !modoCadastro && (
+              <>
+                <GoogleLoginButton onClick={handleGoogle} disabled={carregando} />
+                <div className="login-divisor">
+                  <span>ou entre com e-mail</span>
+                </div>
+              </>
+            )}
+
             <form onSubmit={handleSubmit} className="form-grid">
               {modoCadastro && (
                 <div className="campo-app">
@@ -71,6 +95,16 @@ export default function LoginPage() {
                 <Lock size={18} color="#73b8ff" />
                 <input type="password" placeholder="Senha" value={senha} onChange={(e) => setSenha(e.target.value)} required />
               </div>
+              {!modoCadastro && (
+                <button
+                  type="button"
+                  className="login-esqueci-senha"
+                  onClick={() => setMostrarRedefinirSenha(true)}
+                  disabled={carregando}
+                >
+                  Esqueci minha senha
+                </button>
+              )}
               {modoCadastro && (
                 <>
                   <div className="campo-app">
@@ -124,6 +158,14 @@ export default function LoginPage() {
           <MacAppPromo />
         </div>
       </div>
+
+      {mostrarRedefinirSenha && (
+        <RedefinirSenhaModal
+          modoNuvem={firebaseAtivo}
+          onClose={() => setMostrarRedefinirSenha(false)}
+          onEnviar={redefinirSenha}
+        />
+      )}
     </>
   );
 }

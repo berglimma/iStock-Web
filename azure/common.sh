@@ -80,7 +80,15 @@ deactivate_old_revisions() {
   local resource_group="$2"
   local keep_revision="${3:-}"
 
-  echo "→ Desativando revisões antigas..."
+  if [[ -z "$keep_revision" ]]; then
+    keep_revision=$(az containerapp revision list \
+      --name "$app_name" \
+      --resource-group "$resource_group" \
+      --query "sort_by(@, &properties.createdTime) | [-1].name" \
+      -o tsv 2>/dev/null || true)
+  fi
+
+  echo "→ Desativando revisões antigas (mantendo ${keep_revision:-nenhuma})..."
   while IFS= read -r revision; do
     [[ -z "$revision" ]] && continue
     if [[ -n "$keep_revision" && "$revision" == "$keep_revision" ]]; then

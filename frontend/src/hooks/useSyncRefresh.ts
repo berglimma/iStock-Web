@@ -1,14 +1,15 @@
 import { useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 
-/** Recarrega dados periodicamente quando a sincronização Firebase está ativa. */
+/** Carrega dados ao entrar e recarrega periodicamente no modo nuvem. */
 export function useSyncRefresh(reload: () => void, intervalMs = 15000) {
-  const { firebaseAtivo } = useAuth();
+  const { usuario, firebaseAtivo } = useAuth();
 
   useEffect(() => {
-    if (!firebaseAtivo) return;
+    if (!usuario) return;
     reload();
+    if (!firebaseAtivo) return;
     const id = window.setInterval(reload, intervalMs);
     return () => window.clearInterval(id);
-  }, [firebaseAtivo, reload, intervalMs]);
+  }, [usuario, firebaseAtivo, reload, intervalMs]);
 }
