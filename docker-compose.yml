@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  istock:
+    build: .
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - JWT_SECRET=${JWT_SECRET:-altere-em-producao}
+      - PORT=3001
+      - DATABASE_PATH=/data/istock.db
+      - UPLOAD_DIR=/data/uploads
+      - APP_URL=https://www.istockbl.com.br
+      - CORS_ORIGIN=https://www.istockbl.com.br,https://istockbl.com.br
+    volumes:
+      - istock-data:/data
+    restart: unless-stopped
+
+volumes:
+  istock-data:

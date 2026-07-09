@@ -1,0 +1,31 @@
+version: 0.2
+
+env:
+  variables:
+    # Nome do ECR deve ser igual ao AppName usado no CloudFormation (default: istock-web)
+    REPO_NAME: istock-web
+    IMAGE_TAG: latest
+
+phases:
+  pre_build:
+    commands:
+      - echo "🔐 Logando no ECR..."
+      - ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+      - AWS_REGION=${AWS_REGION:-${AWS_DEFAULT_REGION}}
+      - REPO_URI="${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${REPO_NAME}"
+      - |
+        if ! aws ecr describe-repositories --repository-names "${REPO_NAME}" --region "${AWS_REGION}" >/dev/null 2>&1; then
+          echo "📦 Repositório ${REPO_NAME} não existe — criando..."
+          aws ecr create-repository --repository-name "${REPO_NAME}" --region "${AWS_REGION}" >/dev/null
+        fi
+      - aws ecr get-login-password --region "${AWS_REGION}" | docker login --username AWS --password-stdin "${REPO_URI}"
+  build:
+    commands:
+      - echo "🐳 Buildando Docker image..."
+      - docker build -t "${REPO_URI}:${IMAGE_TAG}" .
+  post_build:
+    commands:
+      - echo "🚀 Enviando image para ECR..."
+      - docker push "${REPO_URI}:${IMAGE_TAG}"
+      - echo "IMAGE_URI=${REPO_URI}:${IMAGE_TAG}"
+

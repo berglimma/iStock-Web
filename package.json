@@ -1,0 +1,22 @@
+{
+  "name": "istock-web",
+  "version": "1.0.0",
+  "private": true,
+  "description": "iStock - Gestão inteligente de inventário Apple (Web + Azure/GCP/AWS)",
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev -w backend\" \"npm run dev -w frontend\"",
+    "build": "npm run build -w backend && npm run build -w frontend",
+    "start": "npm run start -w backend",
+    "deploy:gcp": "./gcp/deploy.sh",
+    "deploy:gcp:build": "gcloud builds submit --config=gcp/cloudbuild.yaml .",
+    "deploy:azure": "./azure/deploy.sh",
+    "install:all": "npm install && npm install -w frontend && npm install -w backend"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

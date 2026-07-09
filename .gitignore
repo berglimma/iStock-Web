@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+dist/
+build/
+
+# Environment
+.env
+.env.local
+.env.production
+firebase-service-account.json
+**/firebase-service-account.json
+
+# Database & uploads
+backend/data/
+backend/uploads/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# AWS
+.aws-sam/
+cdk.out/
+
+# Azure
+azure/.deploy-config

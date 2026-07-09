@@ -1,0 +1,16 @@
+.git
+.gitignore
+node_modules
+frontend/node_modules
+backend/node_modules
+frontend/dist
+backend/dist
+backend/data
+backend/uploads
+aws/
+*.md
+.vscode
+istock-web.code-workspace
+.env
+backend/.env
+frontend/.env.local
