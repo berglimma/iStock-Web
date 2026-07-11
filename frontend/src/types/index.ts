@@ -211,10 +211,16 @@ export function abasParaPapel(papel: PapelUsuario): SidebarItem[] {
     case 'Consultor de vendas':
       return ['painel', 'avaliacoes', 'pesquisa', 'cadastro', 'produtos', 'clientes', 'mensagens', 'assistente'];
     case 'Cliente':
-      return ['avaliacoes', 'mensagens'];
+      return ['avaliacoes', 'mensagens', 'assistente'];
     default:
       return ['painel'];
   }
+}
+
+/** Modos do Assistente de IA disponíveis conforme o papel (Cliente só tira dúvidas técnicas). */
+export function modosAssistenteParaPapel(papel: PapelUsuario): ModoAssistente[] {
+  if (papel === 'Cliente') return ['consultor-tecnico'];
+  return ['negociacao', 'consultor-vendas', 'consultor-tecnico'];
 }
 
 export const SIDEBAR_LABELS: Record<SidebarItem, string> = {

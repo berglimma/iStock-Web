@@ -131,7 +131,7 @@ export const api = {
   },
 
   assistente: {
-    criterios: () => request<{ criterios: import('../types').CriteriosAssistente }>('/assistente/criterios'),
+    criterios: () => request<{ criterios: import('../types').CriteriosAssistente | null }>('/assistente/criterios'),
     salvarCriterios: (d: Partial<import('../types').CriteriosAssistente>) =>
       request<{ criterios: import('../types').CriteriosAssistente }>('/assistente/criterios', {
         method: 'PUT', body: JSON.stringify(d),
