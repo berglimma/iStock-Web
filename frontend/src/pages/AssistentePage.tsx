@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { Send, Trash2, Plus, Settings2, Sparkles, ArrowLeft } from 'lucide-react';
 import { api, dataCompleta } from '../api/client';
+import { useAuth } from '../context/AuthContext';
 import {
   ASSISTENTE_MODOS,
+  modosAssistenteParaPapel,
   type CriteriosAssistente,
   type MensagemAssistente,
   type ModoAssistente,
@@ -29,7 +31,22 @@ const SUGESTOES: Record<ModoAssistente, string[]> = {
   ],
 };
 
+function rotuloTom(tom: CriteriosAssistente['tomAtendimento']): string {
+  const map = { consultivo: 'Consultivo', assertivo: 'Assertivo', tecnico: 'Técnico' };
+  return map[tom];
+}
+
+function rotuloFlex(flex: CriteriosAssistente['flexibilidadePreco']): string {
+  const map = { baixa: 'Baixa', media: 'Média', alta: 'Alta' };
+  return map[flex];
+}
+
 export default function AssistentePage() {
+  const { usuario } = useAuth();
+  const papel = usuario!.papel;
+  const ehCliente = papel === 'Cliente';
+  const modosDisponiveis = modosAssistenteParaPapel(papel);
+
   const [view, setView] = useState<'hub' | 'chat' | 'criterios'>('hub');
   const [modoAtivo, setModoAtivo] = useState<ModoAssistente | null>(null);
   const [sessoes, setSessoes] = useState<SessaoAssistente[]>([]);
@@ -42,12 +59,13 @@ export default function AssistentePage() {
   const corpoRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (ehCliente) return;
     api.assistente.criterios().then((r) => setCriterios(r.criterios)).catch(() => {});
-  }, []);
+  }, [ehCliente]);
 
   useEffect(() => {
     corpoRef.current?.scrollTo({ top: corpoRef.current.scrollHeight, behavior: 'smooth' });
-  }, [mensagens]);
+  }, [mensagens, enviando]);
 
   const carregarSessoes = async (modo: ModoAssistente) => {
     const lista = await api.assistente.sessoes(modo);
@@ -55,6 +73,7 @@ export default function AssistentePage() {
   };
 
   const abrirModo = async (modo: ModoAssistente) => {
+    if (!modosDisponiveis.includes(modo)) return;
     setModoAtivo(modo);
     setView('chat');
     await carregarSessoes(modo);
@@ -99,7 +118,7 @@ export default function AssistentePage() {
   };
 
   const salvarCriterios = async () => {
-    if (!criterios) return;
+    if (!criterios || ehCliente) return;
     setSalvandoCriterios(true);
     try {
       const res = await api.assistente.salvarCriterios(criterios);
@@ -110,10 +129,13 @@ export default function AssistentePage() {
     }
   };
 
-  if (view === 'criterios' && criterios) {
+  if (view === 'criterios' && criterios && !ehCliente) {
     return (
       <div>
-        <TituloTela titulo="Critérios personalizados" subtitulo="O assistente usa estas regras em todas as conversas" />
+        <TituloTela
+          titulo="Critérios da loja"
+          subtitulo="O assistente usa estas regras em todas as conversas de negociação e consultoria"
+        />
         <CartaoVidro className="criterios-form">
           <div className="form-grid-2">
             <label className="campo-label">
@@ -233,11 +255,25 @@ export default function AssistentePage() {
                     <div style={{ fontSize: '0.65rem', opacity: 0.5, marginTop: 6 }}>{dataCompleta(m.data)}</div>
                   </div>
                 ))}
+                {enviando && (
+                  <div className="msg-bubble ia ia-pensando">
+                    <div className="ia-badge"><Sparkles size={12} /> Assistente iStock</div>
+                    <span className="ia-pensando__texto">Assistente pensando…</span>
+                  </div>
+                )}
               </div>
 
               <div className="ia-sugestoes">
                 {SUGESTOES[modoAtivo].map((s) => (
-                  <button key={s} type="button" className="ia-chip" onClick={() => enviar(s)}>{s}</button>
+                  <button
+                    key={s}
+                    type="button"
+                    className="ia-chip"
+                    disabled={enviando}
+                    onClick={() => enviar(s)}
+                  >
+                    {s}
+                  </button>
                 ))}
               </div>
 
@@ -263,18 +299,31 @@ export default function AssistentePage() {
     );
   }
 
+  const modosHub = ASSISTENTE_MODOS.filter((m) => modosDisponiveis.includes(m.id));
+  const subtituloHub = ehCliente
+    ? 'Tire dúvidas técnicas sobre produtos Apple'
+    : 'Consultor Apple e negociação com critérios da sua loja';
+
   return (
     <div>
       <div className="assistente-header">
-        <TituloTela titulo="Assistente de IA" subtitulo="Consultor Apple e negociação com critérios da sua loja" />
-        <button className="btn-secundario" style={{ width: 'auto', display: 'flex', gap: 6, alignItems: 'center' }}
-          onClick={() => setView('criterios')}>
-          <Settings2 size={16} /> Critérios
-        </button>
+        <div className="assistente-brand">
+          <img src="/logo.png" alt="" className="assistente-brand__logo" />
+          <div>
+            <p className="assistente-brand__nome">iStock</p>
+            <TituloTela titulo="Assistente de IA" subtitulo={subtituloHub} />
+          </div>
+        </div>
+        {!ehCliente && (
+          <button className="btn-secundario" style={{ width: 'auto', display: 'flex', gap: 6, alignItems: 'center' }}
+            onClick={() => setView('criterios')}>
+            <Settings2 size={16} /> Critérios da loja
+          </button>
+        )}
       </div>
 
       <div className="assistente-grid">
-        {ASSISTENTE_MODOS.map((modo) => (
+        {modosHub.map((modo) => (
           <button key={modo.id} className="assistente-card" onClick={() => abrirModo(modo.id)}
             style={{ '--cor-modo': modo.cor } as React.CSSProperties}>
             <span className="assistente-card__icone">{modo.icone}</span>
@@ -285,15 +334,20 @@ export default function AssistentePage() {
         ))}
       </div>
 
-      {criterios && (
+      {!ehCliente && criterios && (
         <CartaoVidro className="assistente-resumo-criterios">
-          <strong>Critérios ativos:</strong>{' '}
-          margem {criterios.margemMinimaPercentual}% · desconto máx. {criterios.descontoMaximoPercentual}% ·
-          tom {criterios.tomAtendimento} · flexibilidade {criterios.flexibilidadePreco}
-          {criterios.notasPersonalizadas && (
-            <p style={{ marginTop: 8, fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)' }}>
-              {criterios.notasPersonalizadas}
-            </p>
+          <strong>Critérios ativos da loja</strong>
+          <ul className="assistente-resumo-lista">
+            <li>Margem mínima: {criterios.margemMinimaPercentual}% · R$ {criterios.valorMinimoMargem}</li>
+            <li>Desconto máximo: {criterios.descontoMaximoPercentual}%</li>
+            <li>Tom: {rotuloTom(criterios.tomAtendimento)} · Flexibilidade: {rotuloFlex(criterios.flexibilidadePreco)}</li>
+            <li>
+              Troca: {criterios.aceitarTroca ? 'sim' : 'não'} · Priorizar lacrado:{' '}
+              {criterios.priorizarLacrado ? 'sim' : 'não'}
+            </li>
+          </ul>
+          {criterios.notasPersonalizadas.trim() && (
+            <p className="assistente-resumo-notas">{criterios.notasPersonalizadas}</p>
           )}
         </CartaoVidro>
       )}
