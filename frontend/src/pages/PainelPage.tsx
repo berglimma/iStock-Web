@@ -23,8 +23,8 @@ export default function PainelPage() {
     <div>
       <TituloTela titulo="Painel" subtitulo="Visão geral do inventário Apple" />
 
-      <h3 style={{ margin: '20px 0 12px', color: 'white' }}>Financeiro</h3>
-      <div className="grid-metricas">
+      <h3 className="painel-titulo">Financeiro</h3>
+      <div className="grid-metricas painel-secao painel-secao--financeiro">
         <MetricaCard titulo="Receita em estoque" valor={brl(lm.valorTotalEstoque || 0)} cor="#73b8ff" />
         <MetricaCard titulo="Total vendido" valor={brl(lm.receitaTotalVendida || 0)} cor="#34c759" />
         <MetricaCard titulo="Compras aprovadas" valor={brl(am.totalCompradoAprovado || 0)} cor="#34c759" />
@@ -33,8 +33,8 @@ export default function PainelPage() {
         <MetricaCard titulo="Custo em estoque" valor={brl(lm.custoTotalEstoque || 0)} cor="#73b8ff" />
       </div>
 
-      <h3 style={{ margin: '24px 0 12px', color: 'white' }}>Inventário</h3>
-      <div className="grid-metricas">
+      <h3 className="painel-titulo">Inventário</h3>
+      <div className="grid-metricas painel-secao painel-secao--inventario">
         <MetricaCard titulo="Em estoque" valor={String(lm.noEstoque || 0)} cor="#73b8ff" />
         <MetricaCard titulo="Disponíveis" valor={String(lm.disponiveis || 0)} cor="#34c759" />
         <MetricaCard titulo="Reservados" valor={String(lm.reservados || 0)} cor="#ff9500" />
@@ -57,8 +57,8 @@ export default function PainelPage() {
 
       {resumo && resumo.sugestoes.length > 0 && (
         <>
-          <h3 style={{ margin: '24px 0 12px', color: 'white' }}>Sugestões</h3>
-          <div className="lista-sugestoes">
+          <h3 className="painel-titulo">Sugestões</h3>
+          <div className="lista-sugestoes painel-secao painel-secao--sugestoes">
             {resumo.sugestoes.map((s) => (
               <CartaoVidro key={s.id} className="sugestao-card">
                 <div className="sugestao-card__topo">
@@ -77,49 +77,48 @@ export default function PainelPage() {
 
       {resumo && resumo.avaliados.length > 0 && (
         <>
-          <h3 style={{ margin: '24px 0 12px', color: 'white' }}>Avaliados — ações rápidas</h3>
-          <div className="lista-painel">
+          <h3 className="painel-titulo">Avaliados — ações rápidas</h3>
+          <div className="grid-painel-cards painel-secao painel-secao--avaliados">
             {resumo.avaliados.map((a) => (
-              <CartaoVidro key={a.id || a.titulo}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-                  <div>
-                    <strong>{a.titulo}</strong>
-                    <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', marginTop: 4 }}>
-                      {a.status} · {dataCurta(a.data)}
-                    </p>
-                    <p style={{ fontSize: '0.85rem', marginTop: 6, color: '#73b8ff' }}>
-                      Venda {brl(a.valorEstimado ?? 0)}
-                      {a.valorCompraSugerido != null ? ` · Compra ${brl(a.valorCompraSugerido)}` : ''}
-                    </p>
-                  </div>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                    {!a.pagamentoAprovado && a.status === 'Aprovado' && a.id && (
-                      <button
-                        className="btn-secundario"
-                        style={{ width: 'auto', padding: '8px 12px' }}
-                        onClick={async () => {
-                          await api.avaliacoes.aprovarPagamento(a.id!);
-                          reload();
-                        }}
-                      >
-                        Aprovar pgto
-                      </button>
-                    )}
-                    {!a.valorVendaReal && a.valorEstimado && a.id && (
-                      <button
-                        className="btn-primario"
-                        style={{ width: 'auto', padding: '8px 12px' }}
-                        onClick={async () => {
-                          await api.avaliacoes.registrarValorReal(a.id!, a.valorEstimado!);
-                          reload();
-                        }}
-                      >
-                        Confirmar venda sugerida
-                      </button>
-                    )}
-                  </div>
+              <article key={a.id || a.titulo} className="avaliado-card">
+                <header className="avaliado-card__topo">
+                  <h4 className="avaliado-card__titulo">{a.titulo}</h4>
+                  <Badge texto={a.status} cor={a.status === 'Aprovado' ? 'verde' : 'azul'} />
+                </header>
+                <div className="avaliado-card__dados">
+                  <p className="avaliado-card__valor">{brl(a.valorEstimado ?? 0)}</p>
+                  <p className="avaliado-card__meta">
+                    {a.valorCompraSugerido != null ? `Compra ${brl(a.valorCompraSugerido)} · ` : ''}
+                    {dataCurta(a.data)}
+                  </p>
                 </div>
-              </CartaoVidro>
+                <div className="avaliado-card__acoes">
+                  {!a.pagamentoAprovado && a.status === 'Aprovado' && a.id && (
+                    <button
+                      className="btn-secundario"
+                      style={{ width: 'auto', padding: '8px 12px' }}
+                      onClick={async () => {
+                        await api.avaliacoes.aprovarPagamento(a.id!);
+                        reload();
+                      }}
+                    >
+                      Aprovar pgto
+                    </button>
+                  )}
+                  {!a.valorVendaReal && a.valorEstimado && a.id && (
+                    <button
+                      className="btn-primario"
+                      style={{ width: 'auto', padding: '8px 12px' }}
+                      onClick={async () => {
+                        await api.avaliacoes.registrarValorReal(a.id!, a.valorEstimado!);
+                        reload();
+                      }}
+                    >
+                      Confirmar venda sugerida
+                    </button>
+                  )}
+                </div>
+              </article>
             ))}
           </div>
         </>
@@ -127,8 +126,8 @@ export default function PainelPage() {
 
       {categorias.length > 0 && (
         <>
-          <h3 style={{ margin: '24px 0 12px', color: 'white' }}>Estoque por categoria</h3>
-          <div className="grid-metricas">
+          <h3 className="painel-titulo">Estoque por categoria</h3>
+          <div className="grid-metricas painel-secao painel-secao--estoque">
             {categorias.map(([tipo, qtd]) => (
               <MetricaCard key={tipo} titulo={tipo} valor={String(qtd)} cor="#73b8ff" />
             ))}
@@ -138,7 +137,7 @@ export default function PainelPage() {
 
       {resumo && resumo.vendasMes.length > 0 && (
         <>
-          <h3 style={{ margin: '24px 0 12px', color: 'white' }}>Últimas vendas do mês</h3>
+          <h3 className="painel-titulo">Últimas vendas do mês</h3>
           <div className="lista-painel">
             {resumo.vendasMes.map((v) => (
               <CartaoVidro key={v.id || `${v.titulo}-${v.data}`}>
@@ -159,24 +158,22 @@ export default function PainelPage() {
 
       {resumo && resumo.atividade.length > 0 && (
         <>
-          <h3 style={{ margin: '24px 0 12px', color: 'white' }}>Atividade recente</h3>
-          <div className="lista-painel">
+          <h3 className="painel-titulo">Atividade recente</h3>
+          <div className="grid-painel-cards">
             {resumo.atividade.map((t) => (
-              <CartaoVidro key={t.id}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-                  <div>
-                    <Badge texto={t.tipo} cor="azul" />
-                    <p style={{ marginTop: 8, fontWeight: 600 }}>{t.titulo}</p>
-                    {t.detalhes && (
-                      <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', marginTop: 4 }}>{t.detalhes}</p>
-                    )}
-                    <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>
-                      {dataCurta(t.data)}{t.usuario ? ` · ${t.usuario}` : ''}
-                    </p>
-                  </div>
-                  {t.valor != null && <strong style={{ color: '#73b8ff' }}>{brl(t.valor)}</strong>}
+              <article key={t.id} className="atividade-card">
+                <header className="atividade-card__topo">
+                  <h4 className="atividade-card__titulo">{t.titulo}</h4>
+                  <Badge texto={t.tipo} cor="azul" />
+                </header>
+                <div className="atividade-card__dados">
+                  {t.valor != null && <p className="atividade-card__valor">{brl(t.valor)}</p>}
+                  {t.detalhes && <p className="atividade-card__meta">{t.detalhes}</p>}
+                  <p className="atividade-card__meta">
+                    {dataCurta(t.data)}{t.usuario ? ` · ${t.usuario}` : ''}
+                  </p>
                 </div>
-              </CartaoVidro>
+              </article>
             ))}
           </div>
         </>

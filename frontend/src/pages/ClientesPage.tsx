@@ -1,6 +1,6 @@
 import { useCallback, useState, FormEvent } from 'react';
 import { api } from '../api/client';
-import { TIPOS_PRODUTO, type Cliente } from '../types';
+import type { Cliente } from '../types';
 import { TituloTela, CartaoVidro, Badge, EstadoVazio } from '../components/UI';
 import { useSyncRefresh } from '../hooks/useSyncRefresh';
 
@@ -60,14 +60,27 @@ export default function ClientesPage() {
       {clientes.length === 0 ? (
         <EstadoVazio icone="👥" titulo="Nenhum cliente" mensagem="Cadastre clientes para vendas e notificações." />
       ) : (
-        <div className="grid-produtos">
+        <div className="grid-clientes">
           {clientes.map((c) => (
-            <div key={c.id} className="item-vidro">
-              <h4>{c.nome}</h4>
-              {c.email && <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)' }}>{c.email}</p>}
-              {c.telefone && <p style={{ fontSize: '0.85rem' }}>{c.telefone}</p>}
-              {c.possuiWhatsApp && <Badge texto="WhatsApp" cor="verde" />}
-            </div>
+            <article key={c.id} className="cliente-card">
+              <header className="cliente-card__topo">
+                <h4 className="cliente-card__nome">{c.nome}</h4>
+                {c.possuiWhatsApp && <Badge texto="WhatsApp" cor="verde" />}
+              </header>
+              <div className="cliente-card__dados">
+                {c.telefone && <p className="cliente-card__telefone">{c.telefone}</p>}
+                {c.email && <p className="cliente-card__email">{c.email}</p>}
+              </div>
+              {c.tiposNotificacao?.length > 0 ? (
+                <div className="cliente-card__tags">
+                  {c.tiposNotificacao.map((t) => (
+                    <span key={t} className="cliente-card__tag">{t}</span>
+                  ))}
+                </div>
+              ) : (
+                <p className="cliente-card__vazio">Sem preferências de notificação</p>
+              )}
+            </article>
           ))}
         </div>
       )}
