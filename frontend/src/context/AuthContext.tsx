@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { api } from '../api/client';
-import { isFirebaseConfigured, firebaseLogin, firebaseLoginGoogle, firebaseCadastro, firebaseLogout, firebaseRedefinirSenha, onFirebaseAuthChange, onFirebaseTokenRefresh, erroFirebase } from '../firebase/auth';
+import { isFirebaseConfigured, firebaseLogin, firebaseLoginGoogle, firebaseCadastro, firebaseLogout, firebaseRedefinirSenha, firebaseReautenticar, firebaseExcluirUsuarioAtual, onFirebaseAuthChange, onFirebaseTokenRefresh, erroFirebase } from '../firebase/auth';
 import type { Usuario } from '../types';
 
 interface AuthContextType {
@@ -12,6 +12,7 @@ interface AuthContextType {
   loginGoogle: () => Promise<void>;
   redefinirSenha: (email: string) => Promise<void>;
   cadastro: (nome: string, email: string, senha: string, papel: string) => Promise<void>;
+  excluirConta: (senha: string) => Promise<void>;
   sair: () => void;
   limparErro: () => void;
 }
@@ -138,6 +139,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUsuario(r.usuario);
   };
 
+  const excluirConta = async (senha: string) => {
+    setErro(null);
+    if (firebaseAtivo) {
+      try {
+        await firebaseReautenticar(senha);
+      } catch (err) {
+        throw new Error(erroFirebase(err));
+      }
+
+      // 1) Remove perfil + dados do usuário no Firestore (nuvem)
+      await api.excluirConta(senha);
+
+      // 2) Remove o usuário no Firebase Authentication (igual ao app iOS)
+      try {
+        await firebaseExcluirUsuarioAtual();
+      } catch (err) {
+        // Admin SDK pode já ter removido — trata como sucesso se sessão sumiu
+        const code = err && typeof err === 'object' && 'code' in err
+          ? String((err as { code: string }).code)
+          : '';
+        if (code !== 'auth/user-not-found' && code !== 'auth/user-token-expired') {
+          throw new Error(erroFirebase(err));
+        }
+      }
+
+      localStorage.removeItem('istock_token');
+      setUsuario(null);
+      return;
+    }
+
+    await api.excluirConta(senha);
+    localStorage.removeItem('istock_token');
+    setUsuario(null);
+  };
+
   const sair = () => {
     if (firebaseAtivo) firebaseLogout().catch(() => {});
     localStorage.removeItem('istock_token');
@@ -145,7 +181,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ usuario, carregando, erro, firebaseAtivo, login, loginGoogle, redefinirSenha, cadastro, sair, limparErro: () => setErro(null) }}>
+    <AuthContext.Provider value={{ usuario, carregando, erro, firebaseAtivo, login, loginGoogle, redefinirSenha, cadastro, excluirConta, sair, limparErro: () => setErro(null) }}>
       {children}
     </AuthContext.Provider>
   );

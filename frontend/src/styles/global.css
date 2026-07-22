@@ -1192,8 +1192,261 @@ a { color: var(--azul-claro); text-decoration: none; }
   border-top: 1px solid rgba(255,255,255,0.08);
 }
 
+.mensagens-topbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.grid-conversas-msg,
+.grid-contatos-msg {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+  gap: 14px;
+}
+
+.conversa-msg-card,
+.contato-msg-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(115, 184, 255, 0.28);
+  background:
+    linear-gradient(165deg, rgba(115, 184, 255, 0.16), rgba(10, 14, 22, 0.72) 45%, rgba(8, 12, 18, 0.9));
+  box-shadow:
+    0 10px 24px rgba(0, 0, 0, 0.28),
+    0 10px 22px rgba(0, 122, 255, 0.18);
+  color: inherit;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.conversa-msg-card:hover,
+.contato-msg-card:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 14px 28px rgba(0, 0, 0, 0.35),
+    0 14px 28px rgba(0, 122, 255, 0.28);
+}
+
+.conversa-msg-card__avatar,
+.contato-msg-card__avatar {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  background: rgba(115, 184, 255, 0.22);
+  color: #9ecbff;
+}
+
+.conversa-msg-card__corpo,
+.contato-msg-card__corpo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.conversa-msg-card__topo {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.conversa-msg-card__topo strong,
+.contato-msg-card__corpo strong {
+  font-size: 0.98rem;
+  overflow-wrap: anywhere;
+}
+
+.conversa-msg-card__topo time,
+.conversa-msg-card__preview,
+.contato-msg-card__meta {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.5);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.conversa-msg-card__icone {
+  flex-shrink: 0;
+  opacity: 0.45;
+  color: #73b8ff;
+}
+
+.imessage-dock {
+  /* ocupa o espaço ao lado da sidebar, mesma altura */
+  min-height: calc(100vh - 100px);
+}
+
+.imessage-shell {
+  position: fixed;
+  left: 240px;
+  top: 0;
+  bottom: 0;
+  z-index: 35;
+  display: flex;
+  flex-direction: column;
+  width: min(420px, calc(100vw - 260px));
+  height: 100vh;
+  margin: 0;
+  border-radius: 0 18px 18px 0;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(8, 12, 18, 0.94);
+  backdrop-filter: blur(16px);
+  box-shadow: 8px 0 28px rgba(0, 0, 0, 0.35);
+}
+
+.imessage-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.imessage-header__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.imessage-header__info strong {
+  font-size: 1rem;
+}
+
+.imessage-header__info span {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.imessage-corpo {
+  flex: 1;
+  overflow-y: auto;
+  padding: 18px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.imessage-vazio {
+  margin: auto;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.imessage-bubble {
+  max-width: min(78%, 420px);
+  padding: 10px 14px;
+  border-radius: 18px;
+  font-size: 0.92rem;
+  line-height: 1.35;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.imessage-bubble p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.imessage-bubble time {
+  font-size: 0.65rem;
+  opacity: 0.65;
+  align-self: flex-end;
+}
+
+.imessage-bubble__nome {
+  font-size: 0.7rem;
+  opacity: 0.7;
+}
+
+.imessage-bubble.minha {
+  align-self: flex-end;
+  background: linear-gradient(135deg, #34c759, #248a3d);
+  border-bottom-right-radius: 6px;
+}
+
+.imessage-bubble.outra {
+  align-self: flex-start;
+  background: rgba(255, 255, 255, 0.12);
+  border-bottom-left-radius: 6px;
+}
+
+.imessage-input {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.imessage-input input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 12px 16px;
+  color: white;
+}
+
+.imessage-input input::placeholder {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.imessage-send {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #007aff;
+  color: white;
+  cursor: pointer;
+}
+
+.imessage-send:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
 @media (max-width: 768px) {
   .chat-layout { grid-template-columns: 1fr; height: auto; }
+  .imessage-dock { min-height: auto; }
+  .imessage-shell {
+    left: 0;
+    top: auto;
+    bottom: 0;
+    width: 100%;
+    height: min(72vh, 560px);
+    border-radius: 18px 18px 0 0;
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+  }
 }
 
 /* Assistente de IA */
@@ -1263,21 +1516,93 @@ a { color: var(--azul-claro); text-decoration: none; }
   padding: 20px;
   border-radius: var(--radius-lg);
   background: linear-gradient(145deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03));
-  border: 1px solid rgba(255,255,255,0.1);
+  border: 1px solid color-mix(in srgb, var(--cor-modo, #73b8ff) 42%, rgba(255,255,255,0.12));
   cursor: pointer;
-  transition: transform 0.15s, border-color 0.15s;
+  transition: transform 0.18s, border-color 0.18s, box-shadow 0.18s, background 0.18s;
   color: inherit;
 }
 
 .assistente-card:hover {
-  transform: translateY(-2px);
+  transform: translateY(-3px);
   border-color: var(--cor-modo, var(--azul-claro));
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--cor-modo, #73b8ff) 22%, rgba(255,255,255,0.06)),
+      color-mix(in srgb, var(--cor-modo, #73b8ff) 8%, rgba(10,14,22,0.85))
+    );
+  box-shadow:
+    0 10px 24px rgba(0, 0, 0, 0.35),
+    0 12px 28px color-mix(in srgb, var(--cor-modo, #73b8ff) 38%, transparent);
 }
 
 .assistente-card__icone { font-size: 2rem; display: block; margin-bottom: 10px; }
 .assistente-card h3 { font-size: 1rem; margin-bottom: 8px; }
 .assistente-card p { font-size: 0.82rem; color: var(--texto-secundario); line-height: 1.4; margin-bottom: 12px; }
-.assistente-card__cta { font-size: 0.78rem; color: var(--azul-claro); font-weight: 600; }
+.assistente-card__cta {
+  font-size: 0.78rem;
+  color: var(--cor-modo, var(--azul-claro));
+  font-weight: 600;
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sidebar-item--danger {
+  color: rgba(255, 59, 48, 0.85);
+}
+
+.sidebar-item--danger:hover {
+  background: rgba(255, 59, 48, 0.12);
+  border-color: rgba(255, 59, 48, 0.28);
+  color: #ff6b63;
+}
+
+.sidebar-item--danger.active {
+  background: rgba(255, 59, 48, 0.16);
+  border-color: rgba(255, 59, 48, 0.4);
+  box-shadow:
+    0 8px 18px rgba(0, 0, 0, 0.28),
+    0 6px 16px rgba(255, 59, 48, 0.25);
+}
+
+.app-brand-mark {
+  position: fixed;
+  right: 22px;
+  bottom: 20px;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px;
+  text-decoration: none;
+  color: inherit;
+  pointer-events: auto;
+  transition: opacity 0.15s;
+}
+
+.app-brand-mark:hover {
+  opacity: 1;
+}
+
+.app-brand-mark__apple {
+  display: inline-flex;
+  color: rgba(255, 255, 255, 0.28);
+  line-height: 0;
+}
+
+.app-brand-mark__name {
+  font-size: 0.92rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.42);
+}
 
 .assistente-resumo-criterios { font-size: 0.85rem; color: rgba(255,255,255,0.75); }
 

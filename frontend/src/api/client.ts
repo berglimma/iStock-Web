@@ -106,9 +106,13 @@ export const api = {
   chat: {
     conversas: () => request<import('../types').Conversa[]>('/chat/conversas'),
     criarConversa: (clienteId: string, clienteNome: string) =>
-      request('/chat/conversas', { method: 'POST', body: JSON.stringify({ clienteId, clienteNome }) }),
+      request<import('../types').Conversa>('/chat/conversas', {
+        method: 'POST', body: JSON.stringify({ clienteId, clienteNome }),
+      }),
     mensagens: (conversaId: string) =>
-      request<import('../types').Mensagem[]>(`/chat/conversas/${conversaId}/mensagens`),
+      request<{ mensagens: import('../types').Mensagem[]; retencaoDias: number }>(
+        `/chat/conversas/${conversaId}/mensagens`,
+      ),
     enviar: (conversaId: string, texto: string) =>
       request(`/chat/conversas/${conversaId}/mensagens`, {
         method: 'POST', body: JSON.stringify({ tipo: 'texto', texto }),

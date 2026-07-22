@@ -3,6 +3,11 @@ import type { PapelUsuario } from '../middleware/auth.js';
 import type { CriteriosAssistente, ModoAssistente } from '../services/assistenteIA.js';
 
 export const DIAS_LIMITE_ESTOQUE = 30;
+export const DIAS_HISTORICO_CHAT = 30;
+
+export function historicoChatDesde(dias = DIAS_HISTORICO_CHAT): Date {
+  return new Date(Date.now() - dias * 86400000);
+}
 
 export type LancamentoComMetricas = Lancamento & {
   diasNoEstoque: number;
@@ -61,6 +66,8 @@ export interface DataStore {
   listMensagens(conversaId: string): Promise<Mensagem[]>;
   createMensagem(conversaId: string, msg: Mensagem): Promise<{ id: string; data: string }>;
   updateConversaUltimaMensagem(conversaId: string, texto: string, data: string): Promise<void>;
+  /** Remove mensagens com mais de DIAS_HISTORICO_CHAT dias. */
+  purgarMensagensAntigas(conversaId: string): Promise<number>;
 
   getUsuarioByEmail(email: string): Promise<UsuarioRecord | null>;
   getUsuarioById(id: string): Promise<UsuarioRecord | null>;

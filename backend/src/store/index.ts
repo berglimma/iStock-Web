@@ -3,6 +3,8 @@ import { firestoreStore } from './firestoreStore.js';
 import { sqliteStore } from './sqliteStore.js';
 import type { DataStore } from './types.js';
 
+export { DIAS_HISTORICO_CHAT, historicoChatDesde } from './types.js';
+
 function resolveStore(): DataStore {
   const mode = (process.env.DATA_STORE || '').toLowerCase();
   if (mode === 'sqlite') return sqliteStore;

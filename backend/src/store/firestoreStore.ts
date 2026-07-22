@@ -11,6 +11,7 @@ import type { Avaliacao, Cliente, Conversa, Lancamento, Mensagem } from '../type
 import type { PapelUsuario } from '../middleware/auth.js';
 import {
   comMetricasLancamento,
+  historicoChatDesde,
   type DataStore,
   type LancamentoComMetricas,
   type MensagemAssistenteRecord,
@@ -133,8 +134,12 @@ export const firestoreStore: DataStore = {
   },
 
   async listMensagens(conversaId: string): Promise<Mensagem[]> {
+    const desde = historicoChatDesde();
     const snap = await db().collection('conversas').doc(conversaId)
-      .collection('mensagens').orderBy('data').get();
+      .collection('mensagens')
+      .where('data', '>=', toTimestamp(desde.toISOString()))
+      .orderBy('data')
+      .get();
     return snap.docs.map((d) => mensagemFromDoc(d.id, { ...d.data(), conversaId }));
   },
 
@@ -151,6 +156,20 @@ export const firestoreStore: DataStore = {
       ultimaMensagem: texto,
       ultimaMensagemData: toTimestamp(data),
     });
+  },
+
+  async purgarMensagensAntigas(conversaId: string): Promise<number> {
+    const limite = toTimestamp(historicoChatDesde().toISOString());
+    const snap = await db().collection('conversas').doc(conversaId)
+      .collection('mensagens')
+      .where('data', '<', limite)
+      .limit(400)
+      .get();
+    if (snap.empty) return 0;
+    const batch = db().batch();
+    snap.docs.forEach((d) => batch.delete(d.ref));
+    await batch.commit();
+    return snap.size;
   },
 
   async getUsuarioByEmail(email: string): Promise<UsuarioRecord | null> {
@@ -191,7 +210,18 @@ export const firestoreStore: DataStore = {
   },
 
   async deleteUsuario(id: string): Promise<void> {
-    await db().collection('usuarios').doc(id).delete();
+    const batch = db().batch();
+    batch.delete(db().collection('usuarios').doc(id));
+    batch.delete(db().collection('assistente_criterios').doc(id));
+
+    const sessoes = await db().collection('assistente_sessoes').where('usuarioId', '==', id).get();
+    for (const sessao of sessoes.docs) {
+      const msgs = await sessao.ref.collection('mensagens').get();
+      msgs.docs.forEach((m) => batch.delete(m.ref));
+      batch.delete(sessao.ref);
+    }
+
+    await batch.commit();
   },
 
   async getCriteriosAssistente(usuarioId: string): Promise<CriteriosAssistente | null> {

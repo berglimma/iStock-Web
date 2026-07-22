@@ -14,6 +14,24 @@ function AppleLogo({ size = 16 }: { size?: number }) {
   );
 }
 
+/** Marca discreta no canto inferior direito: maçã transparente + iStock. */
+export function AppBrandMark() {
+  return (
+    <a
+      className="app-brand-mark"
+      href={MAC_APP_STORE_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+      title="iStock na App Store"
+    >
+      <span className="app-brand-mark__apple" aria-hidden>
+        <AppleLogo size={36} />
+      </span>
+      <span className="app-brand-mark__name">iStock</span>
+    </a>
+  );
+}
+
 export function MacAppPromo({ compact = false }: { compact?: boolean }) {
   return (
     <div className={`mac-app-promo ${compact ? 'mac-app-promo--compact' : ''}`}>

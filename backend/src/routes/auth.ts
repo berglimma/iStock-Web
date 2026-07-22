@@ -152,20 +152,43 @@ router.get('/admin-disponivel', async (_req, res) => {
 });
 
 router.delete('/conta', authMiddleware, async (req, res) => {
+  const uid = req.user!.id;
+
   if (isFirestoreSync()) {
-    await store.deleteUsuario(req.user!.id);
-    await atualizarContadorAdministradores();
-    try { await firebaseAuth().deleteUser(req.user!.id); } catch { /* ignore */ }
-    return res.json({ ok: true });
+    try {
+      await store.deleteUsuario(uid);
+      await atualizarContadorAdministradores();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return res.status(500).json({ erro: `Falha ao remover perfil na nuvem: ${msg}` });
+    }
+
+    let authRemovido = false;
+    try {
+      await firebaseAuth().deleteUser(uid);
+      authRemovido = true;
+    } catch (err) {
+      // O client também tenta user.delete() após reauth — não bloqueia se já foi removido.
+      const code = err && typeof err === 'object' && 'code' in err ? String((err as { code: string }).code) : '';
+      if (code === 'auth/user-not-found') authRemovido = true;
+    }
+
+    return res.json({
+      ok: true,
+      nuvem: true,
+      perfilRemovido: true,
+      authRemovido,
+      mensagem: 'Conta removida da nuvem (Firestore + Authentication).',
+    });
   }
 
-  const { senha } = req.body;
-  const user = await store.getUsuarioById(req.user!.id);
-  if (!user?.senhaHash || !bcrypt.compareSync(senha, user.senhaHash)) {
+  const { senha } = req.body as { senha?: string };
+  const user = await store.getUsuarioById(uid);
+  if (!user?.senhaHash || !senha || !bcrypt.compareSync(senha, user.senhaHash)) {
     return res.status(401).json({ erro: 'Senha incorreta' });
   }
-  await store.deleteUsuario(req.user!.id);
-  res.json({ ok: true });
+  await store.deleteUsuario(uid);
+  res.json({ ok: true, nuvem: false, perfilRemovido: true });
 });
 
 export default router;

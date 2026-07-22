@@ -1,5 +1,6 @@
 import {
   createUserWithEmailAndPassword,
+  deleteUser,
   EmailAuthProvider,
   GoogleAuthProvider,
   onAuthStateChanged,
@@ -31,8 +32,15 @@ function traduzirErroFirebase(code: string): string {
       return 'E-mail inválido.';
     case 'auth/missing-email':
       return 'Informe o e-mail.';
+    case 'auth/wrong-password':
+    case 'auth/invalid-credential':
+      return 'Senha incorreta.';
+    case 'auth/too-many-requests':
+      return 'Muitas tentativas. Aguarde e tente novamente.';
+    case 'auth/requires-recent-login':
+      return 'Confirme sua senha novamente para continuar.';
     default:
-      return 'Não foi possível entrar com o Google.';
+      return 'Não foi possível autenticar.';
   }
 }
 
@@ -87,6 +95,14 @@ export async function firebaseReautenticar(senha: string): Promise<void> {
   if (!user?.email) throw new Error('Sessão inválida. Faça login novamente.');
   const cred = EmailAuthProvider.credential(user.email, senha);
   await reauthenticateWithCredential(user, cred);
+}
+
+/** Remove o usuário autenticado no Firebase Auth (após reauth + limpeza Firestore). */
+export async function firebaseExcluirUsuarioAtual(): Promise<void> {
+  const auth = getFirebaseAuth();
+  const user = auth.currentUser;
+  if (!user) return;
+  await deleteUser(user);
 }
 
 export async function refreshIdToken(): Promise<string | null> {
