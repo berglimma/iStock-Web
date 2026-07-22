@@ -1,9 +1,10 @@
+// Deve ser o 1º import: o store resolve DATA_STORE na carga do módulo.
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import dotenv from 'dotenv';
 import { initDatabase } from './db/database.js';
 import { isFirestoreSync, store } from './store/index.js';
 import authRoutes from './routes/auth.js';
@@ -14,8 +15,7 @@ import chatRoutes from './routes/chat.js';
 import defeitosRoutes from './routes/defeitos.js';
 import uploadRoutes from './routes/upload.js';
 import assistenteRoutes from './routes/assistente.js';
-
-dotenv.config();
+import painelRoutes from './routes/painel.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -83,6 +83,7 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/defeitos', defeitosRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/assistente', assistenteRoutes);
+app.use('/api/painel', painelRoutes);
 
 app.get('/api/health', (_req, res) => {
   res.json({

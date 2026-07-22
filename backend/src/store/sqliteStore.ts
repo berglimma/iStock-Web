@@ -4,6 +4,7 @@ import { obterCriterios, salvarCriterios, type CriteriosAssistente, type ModoAss
 import type { Avaliacao, Cliente, Conversa, Lancamento, Mensagem } from '../types.js';
 import {
   comMetricasLancamento,
+  historicoChatDesde,
   type DataStore,
   type LancamentoComMetricas,
   type MensagemAssistenteRecord,
@@ -233,8 +234,10 @@ export const sqliteStore: DataStore = {
   },
 
   async listMensagens(conversaId: string): Promise<Mensagem[]> {
-    const rows = db.prepare('SELECT * FROM mensagens WHERE conversa_id = ? ORDER BY data ASC')
-      .all(conversaId) as Record<string, unknown>[];
+    const desdeIso = historicoChatDesde().toISOString();
+    const rows = db.prepare(
+      'SELECT * FROM mensagens WHERE conversa_id = ? AND data >= ? ORDER BY data ASC',
+    ).all(conversaId, desdeIso) as Record<string, unknown>[];
     return rows.map((r) => ({
       id: r.id as string,
       conversaId: r.conversa_id as string,
@@ -261,6 +264,12 @@ export const sqliteStore: DataStore = {
   async updateConversaUltimaMensagem(conversaId: string, texto: string, data: string): Promise<void> {
     db.prepare(`UPDATE conversas SET ultima_mensagem=?, ultima_mensagem_data=? WHERE id=?`)
       .run(texto, data, conversaId);
+  },
+
+  async purgarMensagensAntigas(conversaId: string): Promise<number> {
+    const desdeIso = historicoChatDesde().toISOString();
+    const r = db.prepare('DELETE FROM mensagens WHERE conversa_id = ? AND data < ?').run(conversaId, desdeIso);
+    return r.changes;
   },
 
   async getUsuarioByEmail(email: string): Promise<UsuarioRecord | null> {

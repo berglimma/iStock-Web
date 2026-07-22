@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Trash2 } from 'lucide-react';
 import { api, brl, dataCompleta, dataCurta } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { firebaseReautenticar, isFirebaseConfigured } from '../firebase/auth';
 import type { Avaliacao, ProblemaModelo } from '../types';
 import { Badge, CartaoVidro } from './UI';
 
@@ -15,13 +16,16 @@ interface Props {
 }
 
 export function DetalheAvaliacaoModal({ avaliacao, onClose, onAtualizado }: Props) {
-  const { usuario } = useAuth();
+  const { usuario, firebaseAtivo } = useAuth();
   const [item, setItem] = useState(avaliacao);
   const [valorAjustado, setValorAjustado] = useState(String(avaliacao.valorEstimado ?? ''));
   const [valorReal, setValorReal] = useState(String(avaliacao.valorVendaReal ?? ''));
   const [problemas, setProblemas] = useState<ProblemaModelo[]>(avaliacao.problemasModelo ?? []);
   const [processando, setProcessando] = useState(false);
   const [erro, setErro] = useState('');
+  const [msgValorReal, setMsgValorReal] = useState('');
+  const [mostrarExcluir, setMostrarExcluir] = useState(false);
+  const [senhaAdmin, setSenhaAdmin] = useState('');
 
   const [retNome, setRetNome] = useState('');
   const [retDoc, setRetDoc] = useState('');
@@ -37,6 +41,16 @@ export function DetalheAvaliacaoModal({ avaliacao, onClose, onAtualizado }: Prop
       );
     }
   }, [item.id, item.tipoProduto, item.modelo, item.problemasModelo]);
+
+  const vendaNum = Number(valorAjustado) || item.valorEstimado || 0;
+  const compraNum = item.valorCompraSugerido ?? 0;
+  const margem = vendaNum - compraNum;
+  const valorRealNum = Number(valorReal) || 0;
+  const igualSugerido = useMemo(() => {
+    if (!item.valorEstimado || valorRealNum <= 0) return false;
+    return Math.abs(valorRealNum - item.valorEstimado) < 0.01;
+  }, [valorRealNum, item.valorEstimado]);
+  const valorRealAlterado = valorRealNum > 0 && Math.abs(valorRealNum - (item.valorVendaReal ?? 0)) >= 0.01;
 
   const run = async (fn: () => Promise<void>) => {
     setProcessando(true);
@@ -58,17 +72,36 @@ export function DetalheAvaliacaoModal({ avaliacao, onClose, onAtualizado }: Prop
     }
   };
 
+  const salvarValorReal = (valor: number, mensagem?: string) => {
+    if (valor <= 0) return;
+    run(async () => {
+      await api.avaliacoes.registrarValorReal(item.id!, valor);
+      setMsgValorReal(mensagem || (item.valorVendaReal ? 'Valor de venda atualizado.' : 'Valor de venda registrado.'));
+    });
+  };
+
   const titulo = item.modelo || item.nome;
   const podeExcluir = usuario?.papel === 'Administrador';
 
-  const excluirAvaliacao = () => {
+  const excluirAvaliacao = async () => {
     if (!item.id) return;
-    if (!window.confirm(`Excluir "${titulo}"?\n\nEsta ação não pode ser desfeita.`)) return;
-    run(async () => {
-      await api.avaliacoes.excluir(item.id!);
+    setProcessando(true);
+    setErro('');
+    try {
+      if (firebaseAtivo && isFirebaseConfigured()) {
+        if (!senhaAdmin.trim()) throw new Error('Informe a senha de administrador.');
+        await firebaseReautenticar(senhaAdmin.trim());
+      } else if (!window.confirm(`Excluir "${titulo}"?\n\nEsta ação não pode ser desfeita.`)) {
+        return;
+      }
+      await api.avaliacoes.excluir(item.id);
       onAtualizado();
       onClose();
-    });
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não foi possível excluir');
+    } finally {
+      setProcessando(false);
+    }
   };
 
   return (
@@ -162,6 +195,13 @@ export function DetalheAvaliacaoModal({ avaliacao, onClose, onAtualizado }: Prop
                 </div>
               )}
             </div>
+
+            {(item.status === 'Avaliado' || item.status === 'Aprovado') && compraNum > 0 && (
+              <p style={{ fontSize: '0.85rem', marginTop: 10, color: margem >= 0 ? '#73b8ff' : '#ff6b6b' }}>
+                Margem estimada: {brl(margem)}
+              </p>
+            )}
+
             {item.dataAvaliacao && (
               <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', marginTop: 8 }}>
                 Avaliado em {dataCurta(item.dataAvaliacao)}
@@ -176,44 +216,75 @@ export function DetalheAvaliacaoModal({ avaliacao, onClose, onAtualizado }: Prop
             {item.status !== 'No estoque' && (
               <div style={{ marginTop: 16 }}>
                 <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.45)' }}>Valor real de venda</span>
-                <div style={{ display: 'flex', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
+                {item.valorVendaReal != null && (
+                  <div style={{
+                    marginTop: 8, padding: 12, borderRadius: 12,
+                    background: 'rgba(52,199,89,0.08)', border: '1px solid rgba(52,199,89,0.25)',
+                  }}>
+                    <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.45)' }}>Registrado</p>
+                    <p style={{ fontSize: '1.2rem', fontWeight: 700, color: '#34c759' }}>{brl(item.valorVendaReal)}</p>
+                    {item.dataVendaReal && (
+                      <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)' }}>{dataCurta(item.dataVendaReal)}</p>
+                    )}
+                  </div>
+                )}
+                <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
                   <input
                     type="number" step="0.01" className="valor-input"
                     placeholder="Valor real vendido"
                     value={valorReal}
-                    onChange={(e) => setValorReal(e.target.value)}
+                    onChange={(e) => { setValorReal(e.target.value); setMsgValorReal(''); }}
                   />
                   <button
                     className="btn-secundario"
                     style={{ width: 'auto', padding: '8px 14px' }}
-                    disabled={processando || !valorReal}
-                    onClick={() => run(async () => {
-                      await api.avaliacoes.registrarValorReal(item.id!, Number(valorReal));
-                    })}
+                    disabled={processando || valorRealNum <= 0 || !valorRealAlterado}
+                    onClick={() => salvarValorReal(valorRealNum)}
                   >
-                    Salvar valor real
+                    {item.valorVendaReal ? 'Atualizar valor real' : 'Registrar valor real'}
                   </button>
-                  {item.valorEstimado && (
+                </div>
+                {valorRealNum > 0 && valorRealAlterado && !igualSugerido && (
+                  <p style={{ fontSize: '0.8rem', color: '#73b8ff', marginTop: 6 }}>
+                    Será registrado: {brl(valorRealNum)}
+                  </p>
+                )}
+                {igualSugerido && item.valorEstimado && (
+                  <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.55)', marginTop: 6 }}>
+                    Igual à venda sugerida ({brl(item.valorEstimado)})
+                  </p>
+                )}
+                {msgValorReal && (
+                  <p style={{ fontSize: '0.8rem', color: '#34c759', marginTop: 6 }}>{msgValorReal}</p>
+                )}
+                <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+                  {item.valorEstimado != null && item.valorEstimado > 0 && (
                     <button
-                      className="btn-secundario"
-                      style={{ width: 'auto', padding: '8px 14px' }}
+                      className="btn-primario"
+                      style={{ width: 'auto', padding: '8px 14px', fontSize: '0.85rem' }}
                       disabled={processando}
                       onClick={() => {
                         setValorReal(String(item.valorEstimado));
-                        run(async () => {
-                          await api.avaliacoes.registrarValorReal(item.id!, item.valorEstimado!);
-                        });
+                        salvarValorReal(item.valorEstimado!, 'Confirmado no valor sugerido.');
                       }}
                     >
-                      Confirmar sugerido
+                      Confirmar valor sugerido ({brl(item.valorEstimado)})
+                    </button>
+                  )}
+                  {compraNum > 0 && Math.abs(compraNum - (item.valorEstimado ?? 0)) >= 0.01 && !item.valorVendaReal && (
+                    <button
+                      className="btn-secundario"
+                      style={{ width: 'auto', padding: '8px 14px', fontSize: '0.85rem', color: '#73b8ff' }}
+                      disabled={processando}
+                      onClick={() => {
+                        setValorReal(String(compraNum));
+                        salvarValorReal(compraNum, 'Confirmado no valor da compra.');
+                      }}
+                    >
+                      Confirmar no valor da compra ({brl(compraNum)})
                     </button>
                   )}
                 </div>
-                {item.valorVendaReal && (
-                  <p style={{ fontSize: '0.8rem', color: '#34c759', marginTop: 6 }}>
-                    Registrado: {brl(item.valorVendaReal)}
-                  </p>
-                )}
               </div>
             )}
           </CartaoVidro>
@@ -272,6 +343,34 @@ export function DetalheAvaliacaoModal({ avaliacao, onClose, onAtualizado }: Prop
           </CartaoVidro>
         )}
 
+        {mostrarExcluir && (
+          <CartaoVidro className="info-bloco info-bloco-erro">
+            <h4 style={{ color: '#ff6b6b', marginBottom: 8 }}>Excluir avaliação</h4>
+            <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', marginBottom: 12 }}>
+              Confirme com a senha de administrador para excluir &quot;{titulo}&quot;.
+            </p>
+            {firebaseAtivo && (
+              <div className="campo-app" style={{ marginBottom: 10 }}>
+                <input
+                  type="password"
+                  placeholder="Senha do administrador"
+                  value={senhaAdmin}
+                  onChange={(e) => setSenhaAdmin(e.target.value)}
+                  autoFocus
+                />
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="btn-primario" style={{ width: 'auto', padding: '8px 16px', background: '#ff3b30' }} disabled={processando} onClick={excluirAvaliacao}>
+                Confirmar exclusão
+              </button>
+              <button className="btn-secundario" style={{ width: 'auto' }} onClick={() => { setMostrarExcluir(false); setSenhaAdmin(''); }}>
+                Cancelar
+              </button>
+            </div>
+          </CartaoVidro>
+        )}
+
         {erro && <p style={{ color: '#ff3b30', fontSize: '0.85rem' }}>{erro}</p>}
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 20 }}>
@@ -308,13 +407,13 @@ export function DetalheAvaliacaoModal({ avaliacao, onClose, onAtualizado }: Prop
               Enviar ao estoque
             </button>
           )}
-          {podeExcluir && (
+          {podeExcluir && !mostrarExcluir && (
             <button
               type="button"
               className="btn-secundario"
               style={{ width: 'auto', padding: '8px 16px', color: '#ff3b30', borderColor: 'rgba(255,59,48,0.4)' }}
               disabled={processando}
-              onClick={excluirAvaliacao}
+              onClick={() => setMostrarExcluir(true)}
             >
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                 <Trash2 size={16} />

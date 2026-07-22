@@ -76,9 +76,17 @@ export default function AssistentePage() {
     if (!modosDisponiveis.includes(modo)) return;
     setModoAtivo(modo);
     setView('chat');
-    await carregarSessoes(modo);
-    setSessaoAtiva(null);
-    setMensagens([]);
+    const lista = await api.assistente.sessoes(modo);
+    setSessoes(lista);
+    if (lista[0]) {
+      setSessaoAtiva(lista[0]);
+      setMensagens(await api.assistente.mensagens(lista[0].id));
+    } else {
+      const s = await api.assistente.criarSessao(modo);
+      setSessaoAtiva(s);
+      setMensagens(await api.assistente.mensagens(s.id));
+      setSessoes(await api.assistente.sessoes(modo));
+    }
   };
 
   const novaSessao = async () => {
@@ -221,7 +229,7 @@ export default function AssistentePage() {
           <div className="chat-lista">
             {sessoes.length === 0 ? (
               <p style={{ padding: 16, color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem' }}>
-                Nenhuma conversa. Clique em &quot;Nova conversa&quot;.
+                Carregando conversas…
               </p>
             ) : sessoes.map((s) => (
               <div key={s.id} className={`chat-item ${sessaoAtiva?.id === s.id ? 'active' : ''}`}
@@ -336,7 +344,7 @@ export default function AssistentePage() {
 
       {!ehCliente && criterios && (
         <CartaoVidro className="assistente-resumo-criterios">
-          <strong>Critérios ativos da loja</strong>
+          <strong>Regras ativas agora</strong>
           <ul className="assistente-resumo-lista">
             <li>Margem mínima: {criterios.margemMinimaPercentual}% · R$ {criterios.valorMinimoMargem}</li>
             <li>Desconto máximo: {criterios.descontoMaximoPercentual}%</li>

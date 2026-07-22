@@ -79,7 +79,11 @@ router.post('/sessoes', async (req, res) => {
     atualizadoEm: agora,
   });
 
-  const abertura = gerarRespostaAssistente(modo, req.user!.id, '', true);
+  const abertura = await gerarRespostaAssistente(modo, req.user!.id, '', true, {
+    criterios: podeEditarCriterios(req.user!.papel)
+      ? await store.getCriteriosAssistente(req.user!.id)
+      : undefined,
+  });
   await store.createMensagemAssistente({
     id: crypto.randomUUID(),
     sessaoId: id,
@@ -122,10 +126,28 @@ router.post('/sessoes/:id/mensagens', async (req, res) => {
     data: agora,
   });
 
-  const resposta = gerarRespostaAssistente(sessao.modo, req.user!.id, conteudo, false);
   const criterios = podeEditarCriterios(req.user!.papel)
     ? await store.getCriteriosAssistente(req.user!.id)
     : null;
+  const historicoMsgs = await store.listMensagensAssistente(sessao.id);
+  const lancamentos = await store.listLancamentos();
+  const estoque = lancamentos
+    .filter((l) => l.status === 'Disponível' || l.status === 'Reservado')
+    .slice(0, 12)
+    .map((l) => ({
+      nome: l.nome,
+      modelo: l.modelo,
+      valor: l.valor,
+      lacrado: l.lacrado,
+    }));
+
+  const resposta = await gerarRespostaAssistente(sessao.modo, req.user!.id, conteudo, false, {
+    criterios: criterios ?? undefined,
+    historico: historicoMsgs
+      .filter((m) => m.papel === 'usuario' || m.papel === 'assistente')
+      .map((m) => ({ papel: m.papel as 'usuario' | 'assistente', conteudo: m.conteudo })),
+    estoque,
+  });
   const aiMsgId = crypto.randomUUID();
   await store.createMensagemAssistente({
     id: aiMsgId,

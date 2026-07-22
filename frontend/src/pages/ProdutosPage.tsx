@@ -65,19 +65,27 @@ export default function ProdutosPage() {
       ) : (
         <div className="grid-produtos">
           {filtrados.map((p) => (
-            <div key={p.id} className="produto-card" onClick={() => setSelecionado(p)}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                <Badge texto={p.tipoProduto} />
+            <article key={p.id} className="produto-card" onClick={() => setSelecionado(p)}>
+              <header className="produto-card__topo">
+                <h4 className="produto-card__nome">{p.modelo || p.nome}</h4>
                 <Badge texto={p.status} cor={statusCor(p.status)} />
+              </header>
+              <div className="produto-card__dados">
+                <p className="produto-card__valor">{brl(p.valor)}</p>
+                <p className="produto-card__meta">
+                  {[p.tipoProduto, p.capacidade, p.cor].filter(Boolean).join(' · ')}
+                </p>
+                <p className="produto-card__meta">{dataCurta(p.data)}</p>
               </div>
-              <h4>{p.modelo || p.nome}</h4>
-              <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)', margin: '4px 0' }}>
-                {[p.capacidade, p.cor].filter(Boolean).join(' · ')}
-              </p>
-              <p style={{ fontWeight: 700, color: '#73b8ff', marginTop: 8 }}>{brl(p.valor)}</p>
-              <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)' }}>{dataCurta(p.data)}</p>
-              {p.estaHaMuitoTempoNoEstoque && <Badge texto={`${p.diasNoEstoque}d parado`} cor="vermelho" />}
-            </div>
+              {(p.estaHaMuitoTempoNoEstoque || p.tipoProduto) && (
+                <div className="produto-card__tags">
+                  <span className="produto-card__tag">{p.tipoProduto}</span>
+                  {p.estaHaMuitoTempoNoEstoque && (
+                    <Badge texto={`${p.diasNoEstoque}d parado`} cor="vermelho" />
+                  )}
+                </div>
+              )}
+            </article>
           ))}
         </div>
       )}

@@ -7,7 +7,8 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "migrate:firestore": "tsx src/scripts/migrateSqliteToFirestore.ts"
+    "migrate:firestore": "tsx src/scripts/migrateSqliteToFirestore.ts",
+    "migrate:imac": "tsx src/scripts/migrateMacToIMac.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",

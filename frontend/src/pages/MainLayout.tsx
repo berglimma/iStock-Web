@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import {
   LayoutDashboard, FileText, Clock, Search, PlusSquare, Package,
-  Users, MessageCircle, LogOut, Bell, AlertCircle, Sparkles,
+  Users, MessageCircle, LogOut, AlertCircle, Sparkles, Trash2,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { abasParaPapel, SIDEBAR_LABELS, SidebarItem } from '../types';
 import { FundoTecnologico, Badge } from '../components/UI';
-import { MacAppPromo } from '../components/MacAppPromo';
+import { MacAppPromo, AppBrandMark } from '../components/MacAppPromo';
+import { SyncStatusBanner } from '../components/SyncStatusBanner';
+import { ExcluirContaModal } from '../components/ExcluirContaModal';
 import PainelPage from './PainelPage';
 import ProdutosPage from './ProdutosPage';
 import CadastroPage from './CadastroPage';
@@ -30,9 +32,10 @@ const ICONS: Record<SidebarItem, typeof LayoutDashboard> = {
 };
 
 export default function MainLayout() {
-  const { usuario, sair } = useAuth();
+  const { usuario, sair, excluirConta } = useAuth();
   const abas = abasParaPapel(usuario!.papel);
   const [aba, setAba] = useState<SidebarItem>(abas[0]);
+  const [mostrarExcluir, setMostrarExcluir] = useState(false);
 
   useEffect(() => {
     if (!abas.includes(aba)) setAba(abas[0]);
@@ -60,13 +63,23 @@ export default function MainLayout() {
               );
             })}
           </nav>
-          <MacAppPromo compact />
+          <div className="sidebar-footer">
+            <button
+              type="button"
+              className="sidebar-item sidebar-item--danger"
+              onClick={() => setMostrarExcluir(true)}
+            >
+              <span className="left"><Trash2 size={18} /> Excluir conta</span>
+            </button>
+            <MacAppPromo compact />
+          </div>
         </aside>
 
         <main className="main-content">
           <div className="topbar">
             <div />
             <div className="topbar-actions">
+              <SyncStatusBanner />
               <Badge texto={usuario!.papel === 'Administrador' ? 'Administrador' : usuario!.papel === 'Consultor de vendas' ? 'Consultor' : 'Cliente'} cor={papelCor} />
               <button className="btn-secundario" onClick={sair} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <LogOut size={16} /> Sair
@@ -85,6 +98,18 @@ export default function MainLayout() {
           {aba === 'assistente' && <AssistentePage />}
         </main>
       </div>
+
+      <AppBrandMark />
+
+      {mostrarExcluir && (
+        <ExcluirContaModal
+          onClose={() => setMostrarExcluir(false)}
+          onConfirmar={async (senha) => {
+            await excluirConta(senha);
+            setMostrarExcluir(false);
+          }}
+        />
+      )}
     </>
   );
 }

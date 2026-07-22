@@ -1,5 +1,5 @@
 export type PapelUsuario = 'Administrador' | 'Consultor de vendas' | 'Cliente';
-export type TipoProduto = 'iPhone' | 'Mac' | 'Watch' | 'iPad' | 'Apple Watch' | 'MacBook' | 'AirPods' | 'Apple TV' | 'Magic Mouse' | 'iPod' | 'Outro';
+export type TipoProduto = 'iPhone' | 'iMac' | 'Watch' | 'iPad' | 'Apple Watch' | 'MacBook' | 'AirPods' | 'Apple TV' | 'Magic Mouse' | 'iPod' | 'Outro';
 export type StatusProduto = 'Disponível' | 'Reservado' | 'Vendido';
 export type StatusAvaliacao = 'Em avaliação' | 'Avaliado' | 'Aprovado' | 'Compra recusada' | 'No estoque';
 export type GravidadeDefeito = 'Leve' | 'Moderado' | 'Alto';
@@ -126,13 +126,19 @@ export const STATUS_AVALIACAO: StatusAvaliacao[] = [
   'Em avaliação', 'Avaliado', 'Aprovado', 'Compra recusada', 'No estoque',
 ];
 
-export const TIPOS_COM_CAPACIDADE: TipoProduto[] = ['iPhone', 'iPad', 'Mac', 'MacBook', 'iPod', 'Apple TV'];
+export const TIPOS_COM_CAPACIDADE: TipoProduto[] = ['iPhone', 'iPad', 'iMac', 'MacBook', 'iPod', 'Apple TV'];
 export const TIPOS_COM_BATERIA: TipoProduto[] = ['iPhone', 'iPad', 'MacBook', 'Watch', 'Apple Watch', 'iPod'];
 
 export const TIPOS_PRODUTO: TipoProduto[] = [
-  'iPhone', 'Mac', 'Watch', 'iPad', 'Apple Watch', 'MacBook',
+  'iPhone', 'iMac', 'Watch', 'iPad', 'Apple Watch', 'MacBook',
   'AirPods', 'Apple TV', 'Magic Mouse', 'iPod', 'Outro',
 ];
+
+/** Normaliza tipos legados gravados como "Mac" no Firestore. */
+export function normalizarTipoProduto(tipo: string | undefined | null): TipoProduto {
+  if (tipo === 'Mac') return 'iMac';
+  return (tipo as TipoProduto) || 'Outro';
+}
 
 export const PAPEIS: { valor: PapelUsuario; rotulo: string; descricao: string }[] = [
   { valor: 'Administrador', rotulo: 'Administrador', descricao: 'Acesso total ao sistema (máx. 4 contas).' },
