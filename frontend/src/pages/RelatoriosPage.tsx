@@ -14,7 +14,7 @@ export default function RelatoriosPage() {
   const margem = (lm.valorTotalEstoque || 0) - (lm.custoTotalEstoque || 0);
 
   return (
-    <div>
+    <div className="relatorios-page">
       <TituloTela titulo="Relatórios" subtitulo="Análise financeira e operacional" />
 
       <CartaoVidro>

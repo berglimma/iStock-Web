@@ -41,12 +41,17 @@ async function request<T>(path: string, options: RequestInit = {}, retried = fal
     }
   }
 
-  if (!res.ok) throw new Error(data.erro || 'Erro na requisição');
+  if (!res.ok) {
+    const err = new Error(data.erro || 'Erro na requisição') as Error & { code?: string; firebase?: boolean };
+    if (data.code) err.code = data.code;
+    if (data.firebase) err.firebase = true;
+    throw err;
+  }
   return data as T;
 }
 
 export const api = {
-  config: () => request<{ sync: string; firebase: boolean; projectId: string | null }>('/auth/config'),
+  config: () => request<{ sync: string; firebase: boolean; projectId: string | null; databaseId?: string | null }>('/auth/config'),
   firebaseSession: (idToken: string) =>
     request<{ token: string; usuario: import('../types').Usuario }>('/auth/firebase', {
       method: 'POST', body: JSON.stringify({ idToken }),

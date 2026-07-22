@@ -34,7 +34,17 @@ function traduzirErroFirebase(code: string): string {
       return 'Informe o e-mail.';
     case 'auth/wrong-password':
     case 'auth/invalid-credential':
-      return 'Senha incorreta.';
+      return 'E-mail ou senha incorretos.';
+    case 'auth/user-not-found':
+      return 'Conta não encontrada. Use o mesmo e-mail do app iOS ou crie uma conta.';
+    case 'auth/user-disabled':
+      return 'Esta conta foi desativada.';
+    case 'auth/email-already-in-use':
+      return 'Este e-mail já está cadastrado. Faça login com e-mail/senha ou Google.';
+    case 'auth/weak-password':
+      return 'Senha muito fraca (mínimo 6 caracteres).';
+    case 'auth/operation-not-allowed':
+      return 'Método de login desabilitado no Firebase. Ative E-mail/Senha ou Google no Console.';
     case 'auth/too-many-requests':
       return 'Muitas tentativas. Aguarde e tente novamente.';
     case 'auth/requires-recent-login':

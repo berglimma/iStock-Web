@@ -1,6 +1,18 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { api } from '../api/client';
-import { isFirebaseConfigured, firebaseLogin, firebaseLoginGoogle, firebaseCadastro, firebaseLogout, firebaseRedefinirSenha, firebaseReautenticar, firebaseExcluirUsuarioAtual, onFirebaseAuthChange, onFirebaseTokenRefresh, erroFirebase } from '../firebase/auth';
+import {
+  isFirebaseConfigured,
+  firebaseLogin,
+  firebaseLoginGoogle,
+  firebaseCadastro,
+  firebaseLogout,
+  firebaseRedefinirSenha,
+  firebaseReautenticar,
+  firebaseExcluirUsuarioAtual,
+  onFirebaseAuthChange,
+  onFirebaseTokenRefresh,
+  erroFirebase,
+} from '../firebase/auth';
 import type { Usuario } from '../types';
 
 interface AuthContextType {
@@ -19,21 +31,67 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+async function backendQuerFirebase(): Promise<boolean> {
+  const config = await api.config();
+  return Boolean(config.firebase || config.sync === 'firestore');
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [firebaseAtivo, setFirebaseAtivo] = useState(false);
+  const firebaseAtivoRef = useRef(false);
+
+  function ativarFirebase(valor: boolean) {
+    firebaseAtivoRef.current = valor;
+    setFirebaseAtivo(valor);
+  }
+
+  /** Garante modo Firebase quando a nuvem (Firestore) está ativa — evita cair no login local. */
+  async function garantirModoFirebase(): Promise<boolean> {
+    if (firebaseAtivoRef.current) return true;
+    if (!isFirebaseConfigured()) return false;
+    try {
+      const quer = await backendQuerFirebase();
+      if (quer) {
+        ativarFirebase(true);
+        return true;
+      }
+    } catch {
+      // Se o client Firebase está configurado e o backend não responde, ainda tenta Auth no client
+      ativarFirebase(true);
+      return true;
+    }
+    return false;
+  }
 
   useEffect(() => {
     let unsubAuth: (() => void) | undefined;
     let unsubToken: (() => void) | undefined;
+    let cancelado = false;
 
     async function init() {
       try {
-        const config = await api.config();
-        const usarFirebase = config.firebase && isFirebaseConfigured();
-        setFirebaseAtivo(usarFirebase);
+        let backendFirestore: boolean | null = null;
+
+        if (isFirebaseConfigured()) {
+          for (let tentativa = 0; tentativa < 3; tentativa++) {
+            try {
+              backendFirestore = await backendQuerFirebase();
+              break;
+            } catch {
+              if (tentativa < 2) await new Promise((r) => setTimeout(r, 500 * (tentativa + 1)));
+            }
+          }
+        }
+
+        if (cancelado) return;
+
+        // Firestore no backend → Firebase Auth. Se o backend ainda não respondeu, assume nuvem
+        // quando o client já tem VITE_FIREBASE_* (evita cair no login local e no erro do /auth/login).
+        const usarFirebase = isFirebaseConfigured() && (backendFirestore === true || backendFirestore === null);
+        ativarFirebase(usarFirebase);
 
         if (usarFirebase) {
           unsubToken = onFirebaseTokenRefresh(() => {});
@@ -62,6 +120,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // fallback local
       }
 
+      if (cancelado) return;
+
       const token = localStorage.getItem('istock_token');
       if (token) {
         api.me()
@@ -75,32 +135,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     init();
     return () => {
+      cancelado = true;
       unsubAuth?.();
       unsubToken?.();
     };
   }, []);
 
+  const loginComFirebase = async (email: string, senha: string) => {
+    const { idToken } = await firebaseLogin(email, senha);
+    localStorage.setItem('istock_token', idToken);
+    const r = await api.firebaseSession(idToken);
+    setUsuario(r.usuario);
+  };
+
   const login = async (email: string, senha: string) => {
     setErro(null);
-    if (firebaseAtivo) {
+    const usarFirebase = await garantirModoFirebase();
+    if (usarFirebase) {
       try {
-        const { idToken } = await firebaseLogin(email, senha);
-        localStorage.setItem('istock_token', idToken);
-        const r = await api.firebaseSession(idToken);
-        setUsuario(r.usuario);
+        await loginComFirebase(email, senha);
       } catch (err) {
         throw new Error(erroFirebase(err));
       }
       return;
     }
-    const r = await api.login(email, senha);
-    localStorage.setItem('istock_token', r.token);
-    setUsuario(r.usuario);
+
+    try {
+      const r = await api.login(email, senha);
+      localStorage.setItem('istock_token', r.token);
+      setUsuario(r.usuario);
+    } catch (err) {
+      // Backend em Firestore rejeita login local — migra para Firebase Auth
+      const e = err as Error & { code?: string; firebase?: boolean };
+      if ((e.code === 'FIREBASE_REQUIRED' || e.firebase || e.message?.includes('login Firebase')) && isFirebaseConfigured()) {
+        ativarFirebase(true);
+        try {
+          await loginComFirebase(email, senha);
+          return;
+        } catch (fbErr) {
+          throw new Error(erroFirebase(fbErr));
+        }
+      }
+      throw err;
+    }
   };
 
   const loginGoogle = async () => {
     setErro(null);
-    if (!firebaseAtivo) {
+    const usarFirebase = await garantirModoFirebase();
+    if (!usarFirebase) {
       throw new Error('Login com Google requer sincronização Firebase ativa.');
     }
     try {
@@ -115,7 +198,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const redefinirSenha = async (email: string) => {
     setErro(null);
-    if (!firebaseAtivo) {
+    const usarFirebase = await garantirModoFirebase();
+    if (!usarFirebase) {
       throw new Error('Redefinição de senha disponível apenas no modo nuvem (Firebase).');
     }
     try {
@@ -127,11 +211,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const cadastro = async (nome: string, email: string, senha: string, papel: string) => {
     setErro(null);
-    if (firebaseAtivo) {
-      const { idToken } = await firebaseCadastro(email, senha);
-      const r = await api.cadastro({ nome, email, senha, papel, idToken });
-      localStorage.setItem('istock_token', r.token);
-      setUsuario(r.usuario);
+    const usarFirebase = await garantirModoFirebase();
+    if (usarFirebase) {
+      try {
+        const { idToken } = await firebaseCadastro(email, senha);
+        const r = await api.cadastro({ nome, email, senha, papel, idToken });
+        localStorage.setItem('istock_token', r.token);
+        setUsuario(r.usuario);
+      } catch (err) {
+        throw new Error(erroFirebase(err));
+      }
       return;
     }
     const r = await api.cadastro({ nome, email, senha, papel });
@@ -141,21 +230,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const excluirConta = async (senha: string) => {
     setErro(null);
-    if (firebaseAtivo) {
+    const usarFirebase = await garantirModoFirebase();
+    if (usarFirebase) {
       try {
         await firebaseReautenticar(senha);
       } catch (err) {
         throw new Error(erroFirebase(err));
       }
 
-      // 1) Remove perfil + dados do usuário no Firestore (nuvem)
       await api.excluirConta(senha);
 
-      // 2) Remove o usuário no Firebase Authentication (igual ao app iOS)
       try {
         await firebaseExcluirUsuarioAtual();
       } catch (err) {
-        // Admin SDK pode já ter removido — trata como sucesso se sessão sumiu
         const code = err && typeof err === 'object' && 'code' in err
           ? String((err as { code: string }).code)
           : '';
@@ -175,7 +262,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const sair = () => {
-    if (firebaseAtivo) firebaseLogout().catch(() => {});
+    if (firebaseAtivoRef.current) firebaseLogout().catch(() => {});
     localStorage.removeItem('istock_token');
     setUsuario(null);
   };

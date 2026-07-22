@@ -63,6 +63,7 @@ router.post('/login', async (req, res) => {
   if (isFirestoreSync()) {
     return res.status(400).json({
       erro: 'Use login Firebase na web para sincronizar com o app iOS',
+      code: 'FIREBASE_REQUIRED',
       firebase: true,
     });
   }

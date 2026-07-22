@@ -68,14 +68,20 @@ export default function LoginPage() {
 
           <CartaoVidro>
             <p style={{ textAlign: 'center', fontSize: '0.85rem', color: 'rgba(255,255,255,0.55)', marginBottom: 16 }}>
-              {modoCadastro ? 'Cadastre-se para acessar o sistema na nuvem' : 'Acesse sua conta na nuvem'}
+              {modoCadastro
+                ? 'Cadastre-se com Firebase para sincronizar com o app iOS'
+                : firebaseAtivo
+                  ? 'Entre com a mesma conta Firebase do app iOS (modo Nuvem)'
+                  : 'Acesse sua conta'}
             </p>
 
             {firebaseAtivo && !modoCadastro && (
               <>
-                <GoogleLoginButton onClick={handleGoogle} disabled={carregando} />
+                <div className="social-login-row">
+                  <GoogleLoginButton onClick={handleGoogle} disabled={carregando} />
+                </div>
                 <div className="login-divisor">
-                  <span>ou entre com e-mail</span>
+                  <span>ou continue com e-mail</span>
                 </div>
               </>
             )}

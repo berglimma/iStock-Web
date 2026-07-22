@@ -9,6 +9,7 @@ build/
 .env.production
 firebase-service-account.json
 **/firebase-service-account.json
+*-firebase-adminsdk-*.json
 
 # Database & uploads
 backend/data/
