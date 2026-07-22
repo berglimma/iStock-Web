@@ -49,6 +49,16 @@ export interface FotoAvaliacao {
   path?: string;
 }
 
+export interface ModeloFoto {
+  id: string;
+  cadastroId: string;
+  tipoProduto: string;
+  fotoURL: string;
+  fotoPath: string;
+  data: string;
+  criadoPor?: string;
+}
+
 export interface Avaliacao {
   id?: string;
   tipoProduto: TipoProduto;

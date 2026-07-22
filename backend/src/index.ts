@@ -16,6 +16,7 @@ import defeitosRoutes from './routes/defeitos.js';
 import uploadRoutes from './routes/upload.js';
 import assistenteRoutes from './routes/assistente.js';
 import painelRoutes from './routes/painel.js';
+import modeloFotosRoutes from './routes/modeloFotos.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -82,6 +83,7 @@ app.use('/api/clientes', clientesRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/defeitos', defeitosRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/modelo-fotos', modeloFotosRoutes);
 app.use('/api/assistente', assistenteRoutes);
 app.use('/api/painel', painelRoutes);
 

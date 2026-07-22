@@ -93,7 +93,7 @@ export const sqliteStore: DataStore = {
   },
 
   async createLancamento(l: Lancamento, criadoPor: string): Promise<string> {
-    const id = uuid();
+    const id = l.id || uuid();
     const now = new Date().toISOString();
     db.prepare(`INSERT INTO lancamentos (
       id, nome, tipo_produto, modelo, capacidade, cor, telefone, serial, lacrado,

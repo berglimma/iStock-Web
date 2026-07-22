@@ -139,6 +139,22 @@ export const api = {
     return request<{ id: string; url: string; path: string }>('/upload', { method: 'POST', body: fd });
   },
 
+  modeloFotos: {
+    listar: (cadastroId: string) =>
+      request<import('../types').ModeloFoto[]>(`/modelo-fotos?cadastroId=${encodeURIComponent(cadastroId)}`),
+    criar: (d: {
+      cadastroId: string;
+      tipoProduto: string;
+      fotoURL: string;
+      fotoPath: string;
+    }) =>
+      request<import('../types').ModeloFoto>('/modelo-fotos', {
+        method: 'POST',
+        body: JSON.stringify(d),
+      }),
+    excluir: (id: string) => request(`/modelo-fotos/${id}`, { method: 'DELETE' }),
+  },
+
   assistente: {
     criterios: () => request<{ criterios: import('../types').CriteriosAssistente | null }>('/assistente/criterios'),
     salvarCriterios: (d: Partial<import('../types').CriteriosAssistente>) =>
