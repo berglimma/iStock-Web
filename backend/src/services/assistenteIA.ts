@@ -3,6 +3,9 @@ import { estimarPreco } from './precificador.js';
 import { buscarDefeitos, sugestoesModelo } from './defeitosService.js';
 import { carregarContextoNegocio, montarSugestoes } from './relatorioAnalise.js';
 import type { TipoProduto } from '../types.js';
+import { responderNegociacaoLocal } from './negociacaoMotor.js';
+import { responderConsultorTecnicoLocal, responderConsultorVendasLocal } from './consultorAppleMotor.js';
+import { gerarRespostaGemini } from './geminiService.js';
 
 export type ModoAssistente = 'negociacao' | 'consultor-vendas' | 'consultor-tecnico';
 export type TomAtendimento = 'consultivo' | 'assertivo' | 'tecnico';
@@ -374,14 +377,20 @@ function respostaConsultorTecnico(texto: string): string {
   return linhas.join('\n');
 }
 
-export function gerarRespostaAssistente(
+export async function gerarRespostaAssistente(
   modo: ModoAssistente,
   usuarioId: string,
   mensagem: string,
-  historicoVazio: boolean
-): string {
-  const criterios = obterCriterios(usuarioId);
+  historicoVazio: boolean,
+  opcoes?: {
+    criterios?: CriteriosAssistente | null;
+    historico?: Array<{ papel: 'usuario' | 'assistente'; conteudo: string }>;
+    estoque?: Array<{ nome: string; modelo?: string; valor: number; lacrado?: boolean }>;
+  },
+): Promise<string> {
+  const criterios = opcoes?.criterios ?? obterCriterios(usuarioId);
   const texto = mensagem.trim();
+  const estoque = opcoes?.estoque ?? [];
 
   if (historicoVazio && !texto) {
     return abertura(modo, criterios);
@@ -391,13 +400,27 @@ export function gerarRespostaAssistente(
     return 'Envie uma mensagem descrevendo a situação para eu analisar com seus critérios personalizados.';
   }
 
+  const contextoEstoque = estoque
+    .slice(0, 8)
+    .map((e) => `- ${e.modelo || e.nome}: R$ ${e.valor}${e.lacrado ? ' (lacrado)' : ''}`)
+    .join('\n');
+
+  const gemini = await gerarRespostaGemini({
+    modo,
+    mensagem: texto,
+    criterios,
+    historico: opcoes?.historico,
+    contextoEstoque,
+  });
+  if (gemini) return gemini;
+
   switch (modo) {
     case 'negociacao':
-      return respostaNegociacao(texto, criterios);
+      return responderNegociacaoLocal(texto, criterios, estoque);
     case 'consultor-vendas':
-      return respostaConsultorVendas(texto, criterios);
+      return responderConsultorVendasLocal(texto, estoque);
     case 'consultor-tecnico':
-      return respostaConsultorTecnico(texto);
+      return responderConsultorTecnicoLocal(texto);
     default:
       return 'Modo de assistente não reconhecido.';
   }

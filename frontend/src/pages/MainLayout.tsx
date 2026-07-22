@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import { abasParaPapel, SIDEBAR_LABELS, SidebarItem } from '../types';
 import { FundoTecnologico, Badge } from '../components/UI';
 import { MacAppPromo } from '../components/MacAppPromo';
+import { SyncStatusBanner } from '../components/SyncStatusBanner';
 import PainelPage from './PainelPage';
 import ProdutosPage from './ProdutosPage';
 import CadastroPage from './CadastroPage';
@@ -67,6 +68,7 @@ export default function MainLayout() {
           <div className="topbar">
             <div />
             <div className="topbar-actions">
+              <SyncStatusBanner />
               <Badge texto={usuario!.papel === 'Administrador' ? 'Administrador' : usuario!.papel === 'Consultor de vendas' ? 'Consultor' : 'Cliente'} cor={papelCor} />
               <button className="btn-secundario" onClick={sair} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <LogOut size={16} /> Sair

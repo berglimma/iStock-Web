@@ -29,7 +29,7 @@ export function estimarPreco(avaliacao: Pick<Avaliacao, 'tipoProduto' | 'capacid
 
 function valorBase(tipo: TipoProduto): number {
   const map: Record<string, number> = {
-    iPhone: 3800, iPad: 2600, MacBook: 6200, Mac: 4800,
+    iPhone: 3800, iPad: 2600, MacBook: 6200, iMac: 4800, Mac: 4800,
     'Apple Watch': 1900, Watch: 1900, AirPods: 950,
     'Apple TV': 1350, 'Magic Mouse': 420, iPod: 650, Outro: 900,
   };

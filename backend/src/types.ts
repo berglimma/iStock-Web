@@ -1,6 +1,12 @@
 export type TipoProduto =
-  | 'iPhone' | 'Mac' | 'Watch' | 'iPad' | 'Apple Watch' | 'MacBook'
+  | 'iPhone' | 'iMac' | 'Watch' | 'iPad' | 'Apple Watch' | 'MacBook'
   | 'AirPods' | 'Apple TV' | 'Magic Mouse' | 'iPod' | 'Outro';
+
+/** Normaliza tipos legados gravados como "Mac" no Firestore. */
+export function normalizarTipoProduto(tipo: unknown): TipoProduto {
+  if (tipo === 'Mac') return 'iMac';
+  return (tipo as TipoProduto) || 'Outro';
+}
 
 export type StatusProduto = 'Disponível' | 'Reservado' | 'Vendido';
 export type StatusAvaliacao = 'Em avaliação' | 'Avaliado' | 'Aprovado' | 'Compra recusada' | 'No estoque';

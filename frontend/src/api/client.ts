@@ -152,6 +152,33 @@ export const api = {
     excluirSessao: (sessaoId: string) =>
       request(`/assistente/sessoes/${sessaoId}`, { method: 'DELETE' }),
   },
+
+  painel: {
+    resumo: () => request<{
+      estoquePorCategoria: Record<string, number>;
+      vendasMes: Array<{ id?: string; titulo: string; tipoProduto: string; valor: number; data: string }>;
+      avaliados: Array<{
+        id?: string; titulo: string; status: string;
+        valorEstimado?: number; valorCompraSugerido?: number; valorVendaReal?: number;
+        pagamentoAprovado: boolean; data: string;
+      }>;
+      sugestoes: Array<{ id: string; titulo: string; mensagem: string; prioridade: string }>;
+      atividade: Array<{
+        id: string; tipo: string; titulo: string; detalhes?: string;
+        valor?: number; data: string; usuario?: string;
+      }>;
+    }>('/painel/resumo'),
+  },
+
+  syncStatus: () => request<{
+    ativo: boolean;
+    modo: string;
+    projectId?: string;
+    databaseId?: string;
+    mensagem: string;
+    contagens?: { lancamentos: number; avaliacoes: number; clientes: number };
+    erro?: string;
+  }>('/sync/status'),
 };
 
 export function brl(valor: number) {

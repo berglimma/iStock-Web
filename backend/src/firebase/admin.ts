@@ -1,10 +1,24 @@
 import { readFileSync, existsSync } from 'fs';
+import { resolve } from 'path';
 import { initializeApp, cert, getApps, type App } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
 
 let app: App | null = null;
+
+function resolveCredentialsPath(credPath: string): string | null {
+  const candidates = [
+    credPath,
+    resolve(process.cwd(), credPath),
+    resolve(process.cwd(), '..', 'firebase-service-account.json'),
+    resolve(process.cwd(), 'firebase-service-account.json'),
+  ];
+  for (const p of candidates) {
+    if (existsSync(p)) return p;
+  }
+  return null;
+}
 
 function loadServiceAccount(): Record<string, unknown> | null {
   const jsonEnv = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
@@ -17,8 +31,11 @@ function loadServiceAccount(): Record<string, unknown> | null {
   }
 
   const credPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
-  if (credPath && existsSync(credPath)) {
-    return JSON.parse(readFileSync(credPath, 'utf8'));
+  if (credPath) {
+    const resolved = resolveCredentialsPath(credPath);
+    if (resolved) {
+      return JSON.parse(readFileSync(resolved, 'utf8'));
+    }
   }
 
   return null;

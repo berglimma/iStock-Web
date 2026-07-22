@@ -39,7 +39,7 @@ DATA_STORE=firestore
 FIREBASE_PROJECT_ID=${FIREBASE_PROJECT_ID}
 FIRESTORE_DATABASE_ID=${FIRESTORE_DATABASE_ID}
 FIREBASE_STORAGE_BUCKET=${FIREBASE_STORAGE_BUCKET}
-GOOGLE_APPLICATION_CREDENTIALS=./firebase-service-account.json
+GOOGLE_APPLICATION_CREDENTIALS=../firebase-service-account.json
 EOF
 
 for envfile in frontend/.env.development frontend/.env.production; do
@@ -155,6 +155,7 @@ az containerapp update \
     DATABASE_PATH=/app/data/istock.db \
     DATABASE_BACKUP_PATH=/data/backups/istock.db \
     UPLOAD_DIR=/data/uploads \
+    GEMINI_API_KEY="${GEMINI_API_KEY:-}" \
   --output none
 
 if [[ -n "$SA_ENV" ]]; then

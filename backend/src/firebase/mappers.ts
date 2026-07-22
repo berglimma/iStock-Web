@@ -1,5 +1,5 @@
 import { Timestamp, type DocumentData } from 'firebase-admin/firestore';
-import type { Avaliacao, Cliente, Lancamento, Mensagem, Conversa } from '../types.js';
+import { normalizarTipoProduto, type Avaliacao, type Cliente, type Lancamento, type Mensagem, type Conversa } from '../types.js';
 
 export function toIso(value: unknown): string {
   if (!value) return new Date().toISOString();
@@ -17,7 +17,7 @@ export function lancamentoFromDoc(id: string, d: DocumentData): Lancamento {
   return {
     id,
     nome: d.nome,
-    tipoProduto: d.tipoProduto,
+    tipoProduto: normalizarTipoProduto(d.tipoProduto),
     modelo: d.modelo,
     capacidade: d.capacidade,
     cor: d.cor,
@@ -41,7 +41,7 @@ export function lancamentoFromDoc(id: string, d: DocumentData): Lancamento {
 export function lancamentoToDoc(l: Lancamento): Record<string, unknown> {
   return {
     nome: l.nome,
-    tipoProduto: l.tipoProduto,
+    tipoProduto: normalizarTipoProduto(l.tipoProduto),
     modelo: l.modelo ?? null,
     capacidade: l.capacidade ?? null,
     cor: l.cor ?? null,
@@ -65,7 +65,7 @@ export function lancamentoToDoc(l: Lancamento): Record<string, unknown> {
 export function avaliacaoFromDoc(id: string, d: DocumentData): Avaliacao {
   return {
     id,
-    tipoProduto: d.tipoProduto,
+    tipoProduto: normalizarTipoProduto(d.tipoProduto),
     nome: d.nome,
     modelo: d.modelo,
     capacidade: d.capacidade,
@@ -97,7 +97,7 @@ export function avaliacaoFromDoc(id: string, d: DocumentData): Avaliacao {
 
 export function avaliacaoToDoc(a: Avaliacao): Record<string, unknown> {
   return {
-    tipoProduto: a.tipoProduto,
+    tipoProduto: normalizarTipoProduto(a.tipoProduto),
     nome: a.nome,
     modelo: a.modelo ?? null,
     capacidade: a.capacidade ?? null,
@@ -128,13 +128,14 @@ export function avaliacaoToDoc(a: Avaliacao): Record<string, unknown> {
 }
 
 export function clienteFromDoc(id: string, d: DocumentData): Cliente {
+  const tipos = (d.tiposNotificacao ?? []) as string[];
   return {
     id,
     nome: d.nome,
     email: d.email,
     telefone: d.telefone,
     possuiWhatsApp: Boolean(d.possuiWhatsApp),
-    tiposNotificacao: d.tiposNotificacao ?? [],
+    tiposNotificacao: tipos.map((t) => normalizarTipoProduto(t)),
     ativo: d.ativo !== false,
     data: toIso(d.data),
     criadoPor: d.criadoPor,

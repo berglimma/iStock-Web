@@ -1,8 +1,10 @@
 import {
   createUserWithEmailAndPassword,
+  EmailAuthProvider,
   GoogleAuthProvider,
   onAuthStateChanged,
   onIdTokenChanged,
+  reauthenticateWithCredential,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signInWithPopup,
@@ -76,6 +78,15 @@ export async function firebaseCadastro(email: string, senha: string): Promise<{ 
 
 export async function firebaseLogout(): Promise<void> {
   await signOut(getFirebaseAuth());
+}
+
+/** Reautentica o usuário atual com e-mail/senha (ações sensíveis). */
+export async function firebaseReautenticar(senha: string): Promise<void> {
+  const auth = getFirebaseAuth();
+  const user = auth.currentUser;
+  if (!user?.email) throw new Error('Sessão inválida. Faça login novamente.');
+  const cred = EmailAuthProvider.credential(user.email, senha);
+  await reauthenticateWithCredential(user, cred);
 }
 
 export async function refreshIdToken(): Promise<string | null> {

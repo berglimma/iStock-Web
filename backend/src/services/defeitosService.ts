@@ -101,7 +101,7 @@ function problemasGenericos(tipo: TipoProduto): ProblemaModelo[] {
       { id: 'gen-tela', titulo: 'Tela e Face ID', descricao: 'Testar display, toque e biometria após quedas.', gravidade: 'Moderado' },
     ];
   }
-  if (['MacBook', 'Mac'].includes(tipo)) {
+  if (['MacBook', 'iMac', 'Mac'].includes(tipo)) {
     return [
       { id: 'gen-ssd', titulo: 'Armazenamento', descricao: 'Rodar diagnóstico de disco e SMART se disponível.', gravidade: 'Moderado' },
       { id: 'gen-teclado', titulo: 'Teclado e trackpad', descricao: 'Testar todas as teclas e cliques.', gravidade: 'Leve' },
